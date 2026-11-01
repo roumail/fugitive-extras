@@ -31,7 +31,7 @@ new remote branches.
 
 
 Reviewing a PR: check it out (`gh pr checkout`, or `:PRs` in
-[git-extras](https://github.com/roumail/git-extras)), then `:BranchDiff` and
+[gh-extras](https://github.com/roumail/gh-extras)), then `:BranchDiff` and
 `:BranchCommits`.
 
 ## Comparisons
