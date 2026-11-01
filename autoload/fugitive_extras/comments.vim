@@ -1,4 +1,4 @@
-function! s:target() abort
+function! fugitive_extras#comments#target() abort
   if empty(FugitiveWorkTree())
     " vim-review's default applies
     return {}
@@ -13,21 +13,12 @@ function! s:target() abort
   return {'path': l:path}
 endfunction
 
-function! s:save_dir() abort
+function! fugitive_extras#comments#save_dir() abort
   " In the git dir shared by all work trees, so saves are never committed
   let l:common = FugitiveCommonDir()
   let l:head = FugitiveHead(7)
   return empty(l:common) || empty(l:head) ? ''
         \ : l:common . '/vim-review/' . l:head
-endfunction
-
-function! fugitive_extras#comments#init() abort
-  call review#use({
-        \ 'root': function('FugitiveWorkTree'),
-        \ 'target': function('s:target'),
-        \ 'save_dir': function('s:save_dir'),
-        \ 'scope': function('FugitiveHead', [7]),
-        \ })
 endfunction
 
 function! fugitive_extras#comments#check() abort

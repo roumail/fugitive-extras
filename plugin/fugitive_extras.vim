@@ -37,21 +37,17 @@ nnoremap <Plug>(fugitive-extras-branch-commits) <Cmd>BranchCommits<CR>
 nnoremap <Plug>(fugitive-extras-diff-close) <Cmd>DiffClose<CR>
 nnoremap <Plug>(fugitive-extras-compares) <Cmd>Compares<CR>
 
-" vim-review's review comments: on the branch side of a diff, saved per
-" branch. Set up once every plugin has loaded, when the guards tell whether
-" vim-review and fugitive are installed.
-function! s:review() abort
-  if exists('g:loaded_review') && exists('g:loaded_fugitive')
-    call fugitive_extras#comments#init()
-  endif
-endfunction
+" vim-review's comments go on the branch side of a diff and are saved per
+" branch. Lambdas, not function('Fugitive...'): fugitive may load after this.
+let g:review_provider = {
+      \ 'root': {-> FugitiveWorkTree()},
+      \ 'target': function('fugitive_extras#comments#target'),
+      \ 'save_dir': function('fugitive_extras#comments#save_dir'),
+      \ 'scope': {-> FugitiveHead(7)},
+      \ }
 
 augroup fugitive_extras
   autocmd!
   " Warn after a :Git checkout that left unsaved comments from another branch
   autocmd User FugitiveChanged call fugitive_extras#comments#check()
-  autocmd VimEnter * ++once call s:review()
 augroup END
-if v:vim_did_enter
-  call s:review()
-endif
