@@ -39,9 +39,8 @@ Reviewing a PR: check it out (`gh pr checkout`, or `:PRs` in
 Each `:BranchDiff` is kept as a comparison, as in GitLens' Search & Compare:
 named for the branch (the current branch's name without one), with the
 merge-base it diffed against. Its tabs carry its name, so closing the files
-that raise no questions leaves the ones that do, and
-[vim-prompts](https://github.com/roumail/vim-prompts) can send those with
-`#diff_pairs:<name>`. A comparison stays listed until you remove it, even
+that raise no questions leaves the ones that do, and other plugins can read
+which ([For other plugins](#for-other-plugins)). A comparison stays listed until you remove it, even
 with all its tabs closed, for the rest of the Vim session; another
 `:BranchDiff` of the same branch replaces it.
 
