@@ -38,12 +38,13 @@ nnoremap <Plug>(fugitive-extras-diff-close) <Cmd>DiffClose<CR>
 nnoremap <Plug>(fugitive-extras-compares) <Cmd>Compares<CR>
 
 " vim-review's comments go on the branch side of a diff and are saved per
-" branch. Lambdas, not function('Fugitive...'): fugitive may load after this.
+" branch: the one this tab compares, else the checked-out one. Lambdas, not
+" function('Fugitive...'): fugitive may load after this.
 let g:review_provider = {
       \ 'root': {-> FugitiveWorkTree()},
       \ 'target': function('fugitive_extras#comments#target'),
       \ 'save_dir': function('fugitive_extras#comments#save_dir'),
-      \ 'scope': {-> FugitiveHead(7)},
+      \ 'scope': function('fugitive_extras#comments#scope'),
       \ }
 
 augroup fugitive_extras

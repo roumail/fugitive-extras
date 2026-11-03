@@ -10,29 +10,62 @@ function! s:tabs(compare) abort
         \ {_, t -> get(t.variables, 'fugitive_extras_compare', {}) == s:key(a:compare)}), 'v:val.tabnr')
 endfunction
 
-function! fugitive_extras#compares#open(dir, name, base, head) abort
-  let l:here = tabpagenr()
+" The name for a new comparison of branch: one of its comparisons with no tabs
+" left, else branch, branch#2, ... whichever is free
+function! s:name(dir, branch) abort
+  let l:same = filter(copy(s:compares), 'v:val.dir ==# a:dir')
+  for l:compare in l:same
+    if l:compare.branch ==# a:branch && empty(s:tabs(l:compare))
+      return l:compare.name
+    endif
+  endfor
+  let l:taken = map(l:same, 'v:val.name')
+  let l:name = a:branch
+  let l:n = 2
+  while index(l:taken, l:name) >= 0
+    let l:name = a:branch . '#' . l:n
+    let l:n += 1
+  endwhile
+  return l:name
+endfunction
+
+" Opens a new comparison of branch, or with a name, opens that one again
+function! fugitive_extras#compares#open(dir, branch, base, head, ...) abort
+  let l:name = a:0 ? a:1 : s:name(a:dir, a:branch)
   let l:win = win_getid()
-  let l:before = tabpagenr('$')
+  " Windows open before: the tabs with none of them are the new ones, wherever
+  " fugitive put them
+  let l:before = {}
+  for l:tab in gettabinfo()
+    for l:id in l:tab.windows
+      let l:before[l:id] = 1
+    endfor
+  endfor
   " :Git in that repo, whichever buffer this is
   execute fugitive#Command(line('.'), -1, 0, 0, '', 'difftool -y ' . a:base . ' ' . a:head, a:dir)
-  let l:files = tabpagenr('$') - l:before
+  let l:new = []
+  for l:tab in gettabinfo()
+    if empty(filter(copy(l:tab.windows), 'has_key(l:before, v:val)'))
+      call add(l:new, l:tab.tabnr)
+    endif
+  endfor
+  let l:files = len(l:new)
   if !l:files
-    echo 'fugitive-extras: no changes in ' . a:name
+    echo 'fugitive-extras: no changes in ' . a:branch
     return
   endif
   let l:old = filter(copy(s:compares),
-        \ 'v:val.dir ==# a:dir && v:val.name ==# a:name')
+        \ 'v:val.dir ==# a:dir && v:val.name ==# l:name')
   if !empty(l:old) && l:old[0].base ==# a:base && l:old[0].head ==# a:head
     " The same diff again: its tabs still open stay in it
     call remove(s:compares, index(s:compares, l:old[0]))
   else
-    call fugitive_extras#compares#remove(a:dir, a:name)
+    call fugitive_extras#compares#remove(a:dir, l:name)
   endif
-  let l:compare = {'dir': a:dir, 'name': a:name, 'base': a:base,
+  let l:compare = {'dir': a:dir, 'name': l:name, 'branch': a:branch, 'base': a:base,
         \ 'head': a:head, 'files': l:files, 'time': localtime(), 'win': l:win}
   call add(s:compares, l:compare)
-  for l:tab in range(l:here + 1, l:here + l:files)
+  for l:tab in l:new
     call settabvar(l:tab, 'fugitive_extras_compare', s:key(l:compare))
   endfor
 endfunction
@@ -56,17 +89,25 @@ function! fugitive_extras#compares#remove(dir, name) abort
   endfor
 endfunction
 
+function! s:find(key) abort
+  return get(filter(copy(s:compares), 's:key(v:val) ==# a:key'), 0, {})
+endfunction
+
+" The comparison this tab is in, or {}
+function! fugitive_extras#compares#current() abort
+  return s:find(get(t:, 'fugitive_extras_compare', {}))
+endfunction
+
 function! fugitive_extras#compares#close(name) abort
-  let l:key = empty(a:name) ? get(t:, 'fugitive_extras_compare', {})
-        \ : {'dir': FugitiveGitDir(), 'name': a:name}
-  let l:compare = get(filter(copy(s:compares), 's:key(v:val) ==# l:key'), 0, {})
+  let l:compare = empty(a:name) ? fugitive_extras#compares#current()
+        \ : s:find({'dir': FugitiveGitDir(), 'name': a:name})
   if empty(l:compare)
-    call fugitive_extras#error('no comparison ' . get(l:key, 'name', '') . ' in :Compares')
+    call fugitive_extras#error('no comparison ' . a:name . ' in :Compares')
     return
   endif
   let l:tabs = s:tabs(l:compare)
   if empty(l:tabs)
-    echo 'fugitive-extras: no tabs of ' . a:name . ' open'
+    echo 'fugitive-extras: no tabs of ' . l:compare.name . ' open'
     return
   endif
   let l:from = index(l:tabs, tabpagenr()) >= 0
@@ -152,7 +193,8 @@ function! s:open() abort
   endif
   let l:dir = b:fugitive_extras_dir
   call s:close()
-  call fugitive_extras#compares#open(l:dir, l:compare.name, l:compare.base, l:compare.head)
+  call fugitive_extras#compares#open(l:dir, l:compare.branch, l:compare.base,
+        \ l:compare.head, l:compare.name)
 endfunction
 
 function! s:remove() abort

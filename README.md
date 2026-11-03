@@ -41,8 +41,11 @@ named for the branch (the current branch's name without one), with the
 merge-base it diffed against. Its tabs carry its name, so closing the files
 that raise no questions leaves the ones that do, and other plugins can read
 which ([For other plugins](#for-other-plugins)). A comparison stays listed until you remove it, even
-with all its tabs closed, for the rest of the Vim session; another
-`:BranchDiff` of the same branch replaces it.
+with all its tabs closed, for the rest of the Vim session. Another
+`:BranchDiff` of the same branch reuses a comparison of it with no tabs open;
+while every one of them still has tabs, it starts a new one, `feature#2`,
+`feature#3`, …, so you can keep different files of the same branch open in
+each.
 
 `:Compares` lists them in a window at the bottom: name, `base..head` (`work tree`
 when uncommitted changes are in it), files, how many of its tabs are open,
@@ -63,12 +66,17 @@ git:
 
 - A comment goes on a file in the work tree or on the branch side of a diff;
   the merge-base side is refused. Paths are relative to the repo root.
+- Comments are on the branch a tab's comparison diffs (`:BranchDiff feature`),
+  else on the checked-out branch, so two comparisons of different branches
+  open at once keep their comments apart; comparisons of the same branch
+  share them. A remote branch counts as its local one: `origin/feature` is
+  `feature`.
 - Saves without a file name are per branch and time,
   `vim-review/<branch>/<YYYYmmdd-HHMMSS>.txt` in the git dir, so they
   are never committed and reviews of different branches stay apart.
-  `:CommentsLoad` loads the current branch's latest.
-- Switching branches with `:Git checkout` while comments are unsaved warns
-  once; `:Comment` warns too. Nothing is cleared.
+  `:CommentsLoad` loads the latest of the branch, as above.
+- Switching branches with `:Git checkout`, or commenting in a tab of another
+  branch's comparison, while comments are unsaved warns. Nothing is cleared.
 
 No keys are bound; bind the `<Plug>` mappings yourself, for example:
 
@@ -82,7 +90,8 @@ nmap <leader>cl <Plug>(fugitive-extras-branch-commits)
 | Function | What it does |
 | --- | --- |
 | `fugitive_extras#main_ref()` | Main as a ref (`origin/main`, `main`, …) in the current buffer's repo, or `''`. |
-| `fugitive_extras#compares#list([gitdir])` | The comparisons in the repo at `gitdir` (default: the current buffer's), newest first, as `{name, base, head, files, time, tabs}`: `head` is `''` for the work tree, `tabs` the tab numbers still showing it. |
+| `fugitive_extras#compares#list([gitdir])` | The comparisons in the repo at `gitdir` (default: the current buffer's), newest first, as `{name, branch, base, head, files, time, tabs}`: `branch` is what it was
+named for (`name` may add `#2`), `head` is `''` for the work tree, `tabs` the tab numbers still showing it. |
 
 ## Install
 
