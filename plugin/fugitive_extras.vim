@@ -51,4 +51,7 @@ augroup fugitive_extras
   autocmd!
   " Warn after a :Git checkout that left unsaved comments from another branch
   autocmd User FugitiveChanged call fugitive_extras#comments#check()
+  " A :Git branch -d or fetch --prune may have deleted a branch with saves
+  autocmd User FugitiveChanged if !empty(FugitiveCommonDir())
+        \ | call fugitive_extras#comments#prune(FugitiveCommonDir()) | endif
 augroup END

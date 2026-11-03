@@ -75,6 +75,13 @@ git:
   `vim-review/<branch>/<YYYYmmdd-HHMMSS>.txt` in the git dir, so they
   are never committed and reviews of different branches stay apart.
   `:CommentsLoad` loads the latest of the branch, as above.
+- The saves of a deleted branch are deleted: those of a branch that is
+  neither local nor any remote's, nor anything else naming a commit (a tag,
+  or the commit of a detached HEAD). Once a merged branch's local one is
+  deleted, its remote one goes once GitHub deletes it and you fetch with
+  `--prune`. They are looked for the first time saves are used in a Vim
+  session, and after every `:Git` command. Which were deleted is in
+  `:messages`.
 - Switching branches with `:Git checkout`, or commenting in a tab of another
   branch's comparison, while comments are unsaved warns. Nothing is cleared.
 

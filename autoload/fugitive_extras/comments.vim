@@ -28,12 +28,63 @@ function! fugitive_extras#comments#scope() abort
         \ : l:compare.head
 endfunction
 
+" Common git dirs pruned this session
+let s:pruned = {}
+
 function! fugitive_extras#comments#save_dir() abort
   " In the git dir shared by all work trees, so saves are never committed
   let l:common = FugitiveCommonDir()
   let l:head = fugitive_extras#comments#scope()
+  if !empty(l:common) && !has_key(s:pruned, l:common)
+    call fugitive_extras#comments#prune(l:common)
+  endif
   return empty(l:common) || empty(l:head) ? ''
         \ : l:common . '/vim-review/' . l:head
+endfunction
+
+" Deletes the saves of branches gone from the repository with the common git
+" dir common: neither a local branch nor any remote's (origin/feature keeps
+" feature's), nor anything else that names a commit (a tag, or the commit
+" saves of a detached HEAD are under). A deleted branch's remote one goes on
+" a fetch with --prune, or once GitHub deletes it after a merge.
+function! fugitive_extras#comments#prune(common) abort
+  let s:pruned[a:common] = 1
+  let l:root = a:common . '/vim-review'
+  if !isdirectory(l:root)
+    return
+  endif
+  let l:refs = FugitiveExecute(['for-each-ref', '--format=%(refname)'], a:common)
+  if l:refs.exit_status != 0
+    return
+  endif
+  let l:names = {}
+  for l:ref in l:refs.stdout
+    let l:names[substitute(l:ref, '^refs/\%(heads\|tags\|remotes/[^/]\+\)/', '', '')] = 1
+  endfor
+  let l:dirs = {}
+  for l:file in glob(l:root . '/**/*.txt', 1, 1)
+    let l:dirs[fnamemodify(l:file, ':h')] = 1
+  endfor
+  let l:gone = []
+  for l:dir in keys(l:dirs)
+    let l:name = strpart(l:dir, len(l:root) + 1)
+    if has_key(l:names, l:name) || FugitiveExecute(['rev-parse', '--verify', '--quiet',
+          \ l:name . '^{commit}'], a:common).exit_status == 0
+      continue
+    endif
+    " Its files only: feature/x's saves may be under feature's
+    for l:file in glob(l:dir . '/*.txt', 1, 1) + glob(l:dir . '/*.txt.anchors', 1, 1)
+      call delete(l:file)
+    endfor
+    while l:dir !=# l:root && delete(l:dir, 'd') == 0
+      let l:dir = fnamemodify(l:dir, ':h')
+    endwhile
+    call add(l:gone, l:name)
+  endfor
+  if !empty(l:gone)
+    echomsg 'fugitive-extras: removed the saved comments of deleted branches: '
+          \ . join(sort(l:gone), ', ')
+  endif
 endfunction
 
 function! fugitive_extras#comments#check() abort
