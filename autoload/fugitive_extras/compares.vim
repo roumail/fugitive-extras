@@ -139,23 +139,21 @@ function! fugitive_extras#compares#complete(lead, cmdline, pos) abort
 endfunction
 
 
-function! s:render() abort
-  let b:fugitive_extras_compares = fugitive_extras#compares#list(b:fugitive_extras_dir)
-  let l:lines = ['Comparisons (' . len(b:fugitive_extras_compares) . ')  <CR> open  d remove  r refresh  q close']
-  for l:c in b:fugitive_extras_compares
+function! s:heading(compares) abort
+  return ['Comparisons (' . len(a:compares) . ')']
+endfunction
+
+function! s:rows(compares) abort
+  let l:rows = []
+  for l:c in a:compares
     let l:seconds = localtime() - l:c.time
-    call add(l:lines, printf('%-30.30s %s..%-24.24s %3d files %3d open  %s', l:c.name,
-          \ l:c.base[:6], empty(l:c.head) ? 'work tree' : l:c.head, l:c.files, len(l:c.tabs),
-          \ l:seconds < 60 ? l:seconds . 's'
+    call add(l:rows, {'item': l:c, 'lines': [printf('%-30.30s %s..%-24.24s %3d files %3d open  %s',
+          \ l:c.name, l:c.base[:6], empty(l:c.head) ? 'work tree' : l:c.head, l:c.files,
+          \ len(l:c.tabs), l:seconds < 60 ? l:seconds . 's'
           \ : l:seconds < 3600 ? (l:seconds / 60) . 'm'
-          \ : (l:seconds / 3600) . 'h'))
+          \ : (l:seconds / 3600) . 'h')]})
   endfor
-  setlocal modifiable
-  silent %delete _
-  call setline(1, l:lines)
-  setlocal nomodifiable nomodified
-  execute 'resize' min([line('$'), 15])
-  call cursor(2, 1)
+  return l:rows
 endfunction
 
 function! fugitive_extras#compares#show() abort
@@ -165,50 +163,31 @@ function! fugitive_extras#compares#show() abort
     call fugitive_extras#error('not in a git work tree')
     return
   endif
-  let l:name = 'fugitive-extras://compares/' . fnamemodify(l:worktree, ':t')
-  " A window of its own, so q and :q close only the list, never a window of yours
-  let l:winnr = bufwinnr('^' . l:name . '$')
-  if l:winnr > 0
-    execute l:winnr . 'wincmd w'
-  else
-    execute 'silent botright split' fnameescape(l:name)
-  endif
-  setlocal buftype=nofile bufhidden=wipe noswapfile nowrap nobuflisted winfixheight
-  nnoremap <buffer><silent> q <Cmd>call <SID>close()<CR>
-  let b:fugitive_extras_dir = l:dir
-  nnoremap <buffer><silent> <CR> <Cmd>call <SID>open()<CR>
-  nnoremap <buffer><silent> d <Cmd>call <SID>remove()<CR>
-  nnoremap <buffer><silent> r <Cmd>call <SID>render()<CR>
-  call s:render()
-endfunction
-
-function! s:selected() abort
-  return get(b:fugitive_extras_compares, line('.') - 2, {})
+  call roumail_lists#open('fugitive-extras://compares/' . fnamemodify(l:worktree, ':t'), {
+        \ 'fetch': {-> fugitive_extras#compares#list(b:fugitive_extras_dir)},
+        \ 'heading': function('s:heading'), 'rows': function('s:rows'),
+        \ 'id': {c -> c.name},
+        \ 'match': {c -> c.name . ' ' . c.branch . ' ' . (empty(c.head) ? 'work tree' : c.head)},
+        \ 'keys': [{'key': '<CR>', 'hint': 'open', 'call': function('s:open')},
+        \          {'key': 'd', 'hint': 'remove', 'call': function('s:remove')}]},
+        \ {'fugitive_extras_dir': l:dir})
 endfunction
 
 function! s:open() abort
-  let l:compare = s:selected()
+  let l:compare = roumail_lists#item()
   if empty(l:compare)
     return
   endif
   let l:dir = b:fugitive_extras_dir
-  call s:close()
+  call roumail_lists#close()
   call fugitive_extras#compares#open(l:dir, l:compare.branch, l:compare.base,
         \ l:compare.head, l:compare.name)
 endfunction
 
 function! s:remove() abort
-  let l:compare = s:selected()
+  let l:compare = roumail_lists#item()
   if !empty(l:compare)
     call fugitive_extras#compares#remove(b:fugitive_extras_dir, l:compare.name)
-    call s:render()
-  endif
-endfunction
-
-function! s:close() abort
-  if winnr('$') > 1
-    close
-  else
-    enew
+    call roumail_lists#refresh()
   endif
 endfunction

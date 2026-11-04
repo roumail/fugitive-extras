@@ -2,13 +2,14 @@
 "   vim -Nu NONE -i NONE -Es -S test/run.vim
 " Prints one line per test and exits non-zero when one fails; TEST=<pattern>
 " in the environment runs the tests whose names match. The plugins it needs
-" are vim-plug's copies, unless $FUGITIVE, $VIM_DRAFT or $VIM_REVIEW name
+" are vim-plug's copies, unless $FUGITIVE, $VIM_DRAFT, $VIM_LISTS or $VIM_REVIEW name
 " others.
 set nocompatible hidden
 execute 'set runtimepath^=' . fnameescape(expand('<sfile>:p:h:h'))
 " Only these plugins: Vim's own ones aren't all quiet in silent Ex mode
 for [s:var, s:name, s:file] in [['FUGITIVE', 'vim-fugitive', 'fugitive.vim'],
       \ ['VIM_DRAFT', 'vim-draft', 'roumail_draft.vim'],
+      \ ['VIM_LISTS', 'vim-lists', 'roumail_lists.vim'],
       \ ['VIM_REVIEW', 'vim-review', 'review.vim']]
   let s:dir = fnamemodify(empty(eval('$' . s:var)) ? expand('~/.vim/plugged/' . s:name)
         \ : eval('$' . s:var), ':p:s?/$??')
@@ -147,7 +148,34 @@ function! s:test_deleted_branch_saves_go() abort
   call assert_false(isdirectory(s:repo . '/.git/fugitive-extras/comments/feature'))
 endfunction
 
+function! s:test_compares_list() abort
+  call s:git('checkout', '-q', '-b', 'feature')
+  call writefile(['one', 'TWO', 'three'], s:repo . '/a.txt')
+  call s:git('commit', '-q', '-am', 'change')
+  let l:base = trim(system('git -C ' . shellescape(s:repo) . ' rev-parse main'))
+  let l:head = trim(system('git -C ' . shellescape(s:repo) . ' rev-parse feature'))
+  call fugitive_extras#compares#open(FugitiveGitDir(), 'feature', l:base, l:head)
+  call assert_equal(2, tabpagenr('$'), 'one tab for the changed file')
+  tabfirst
+  Compares
+  call assert_equal('fugitive-extras://compares/repo', bufname())
+  call assert_equal('Comparisons (1)  <CR> open  d remove  / filter  r refresh  q close',
+        \ getline(1))
+  call assert_match('^feature \+' . l:base[:6] . '\.\.' . l:head[:6] . '\x* \+1 files \+1 open',
+        \ getline(2))
+  call assert_equal(2, line('.'))
+  call assert_equal('feature', roumail_lists#item().name)
+  normal d
+  call assert_equal(['Comparisons (0)  <CR> open  d remove  / filter  r refresh  q close'],
+        \ getline(1, '$'))
+  call assert_equal([], fugitive_extras#compares#list())
+  normal q
+  call assert_false(bufexists('fugitive-extras://compares/repo'))
+  silent! tabonly!
+endfunction
+
 let s:prefix = expand('<SID>') . 'test_'
+
 let s:failed = 0
 let s:names = []
 for s:line in split(execute('function'), "\n")

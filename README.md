@@ -54,8 +54,12 @@ and age.
 | --- | --- |
 | `<CR>` | Close the list and open all its files again, in new tabs, against the same merge-base. `:BranchDiff` again to diff against a new one. |
 | `d` | Remove it from the list. Its tabs stay open. To close them too, run `:DiffClose <name>` before removing it. |
-| `r` | Refresh. |
+| `/` | Filter the list as you type, on name, branch and head. |
+| `r` | Refresh. The cursor stays on its comparison. |
 | `q` | Close (`:q` too: the list has its own window). |
+
+The list is a [vim-lists](https://github.com/roumail/vim-lists) list: `/`,
+`r` and `q` are the same as in the other lists.
 
 ## Review comments
 
@@ -148,12 +152,14 @@ named for (`name` may add `#2`), `head` is `''` for the work tree, `tabs` the ta
 Requires vim-fugitive, [vim-draft](https://github.com/roumail/vim-draft) (the
 buffer `:CommentDraft` writes in, and where saves are kept) and
 [vim-review](https://github.com/roumail/vim-review) (the format comments are
-saved in). With [vim-requires](https://github.com/roumail/vim-requires), Vim
+saved in), and [vim-lists](https://github.com/roumail/vim-lists) (`:Compares`).
+With [vim-requires](https://github.com/roumail/vim-requires), Vim
 shows `fugitive-extras: requires …` at startup when one isn't loaded.
 
 ```vim
 Plug 'tpope/vim-fugitive'
 Plug 'roumail/vim-draft'
+Plug 'roumail/vim-lists'
 Plug 'roumail/vim-review'
 Plug 'roumail/vim-requires'  " optional: the startup warning
 Plug 'roumail/fugitive-extras'
