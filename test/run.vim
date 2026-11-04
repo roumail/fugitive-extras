@@ -26,6 +26,10 @@ let s:out = []
 function! s:git(...) abort
   call system('git -C ' . shellescape(s:repo) . ' -c user.name=t -c user.email=t@t '
         \ . join(map(copy(a:000), 'shellescape(v:val)')))
+  " git ran outside fugitive, which caches HEAD by its time to the second: a
+  " checkout in the same second as an earlier test's read of the same path
+  " would keep the old branch. 0 expires it without a FugitiveChanged event
+  call FugitiveDidChange(0)
 endfunction
 
 function! s:reset() abort
