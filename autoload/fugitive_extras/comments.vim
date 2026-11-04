@@ -41,7 +41,8 @@ let s:pruned = {}
 " with --prune, or once GitHub deletes it after a merge.
 function! fugitive_extras#comments#prune() abort
   let l:common = FugitiveCommonDir()
-  if empty(l:common)
+  " It runs after every :Git: without vim-draft there are no saves to prune
+  if empty(l:common) || !fugitive_extras#installed('roumail_draft')
     return
   endif
   let s:pruned[l:common] = 1
@@ -166,6 +167,9 @@ endfunction
 let s:unsent = {}
 
 function! fugitive_extras#comments#add(line1, line2, text) abort
+  if !fugitive_extras#requires(':Comment', 'vim-draft', 'roumail_draft')
+    return
+  endif
   let l:target = s:target(a:line1, a:line2)
   if empty(l:target)
     return
@@ -202,6 +206,9 @@ function! fugitive_extras#comments#add(line1, line2, text) abort
 endfunction
 
 function! fugitive_extras#comments#edit(line1, line2, text) abort
+  if !fugitive_extras#requires(':CommentDraft', 'vim-draft', 'roumail_draft')
+    return
+  endif
   let l:target = s:target(a:line1, a:line2)
   if empty(l:target)
     return
@@ -310,14 +317,22 @@ function! s:saves() abort
 endfunction
 
 function! fugitive_extras#comments#complete_load(lead, cmdline, pos) abort
-  if a:lead =~# '[/~.]'
+  if a:lead =~# '[/~.]' || !fugitive_extras#installed('roumail_draft')
     return getcompletion(a:lead, 'file')
   endif
   return filter(s:saves(), 'stridx(v:val, a:lead) == 0')
         \ + getcompletion(a:lead, 'file')
 endfunction
 
+function! s:requires_saves(what) abort
+  return fugitive_extras#requires(a:what, 'vim-draft', 'roumail_draft')
+        \ && fugitive_extras#requires(a:what, 'vim-review', 'review')
+endfunction
+
 function! fugitive_extras#comments#save(file) abort
+  if !s:requires_saves(':CommentsSave')
+    return
+  endif
   " Named for the time, so they sort
   let l:file = empty(a:file) ? s:save_dir() . '/' . strftime('%Y%m%d-%H%M%S') . '.txt'
         \ : fnamemodify(a:file, ':p')
@@ -360,6 +375,9 @@ function! fugitive_extras#comments#save(file) abort
 endfunction
 
 function! fugitive_extras#comments#load(file) abort
+  if !s:requires_saves(':CommentsLoad')
+    return
+  endif
   let l:saves = s:saves()
   let l:file = index(l:saves, a:file) >= 0 ? s:save_dir() . '/' . a:file
         \ : !empty(a:file) ? fnamemodify(a:file, ':p')

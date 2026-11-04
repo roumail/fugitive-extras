@@ -12,6 +12,21 @@ function! fugitive_extras#error(msg) abort
   echohl None
 endfunction
 
+" Whether the plugin with the autoload file autoload/{name}.vim is installed:
+" the commands that use one check for it first
+function! fugitive_extras#installed(name) abort
+  return !empty(globpath(&runtimepath, 'autoload/' . a:name . '.vim', 1))
+endfunction
+
+" The same, saying what needs the plugin when it isn't installed
+function! fugitive_extras#requires(what, plugin, name) abort
+  if fugitive_extras#installed(a:name)
+    return 1
+  endif
+  call fugitive_extras#error(a:what . ' needs ' . a:plugin . ', which is not installed')
+  return 0
+endfunction
+
 function! fugitive_extras#main_ref() abort
   " The remote ref first: the local branch is often stale after a fetch or a
   " `gh pr checkout`
@@ -83,6 +98,9 @@ function! fugitive_extras#branch_diff(branch) abort
 endfunction
 
 function! fugitive_extras#branch_commits(args) abort
+  if !fugitive_extras#requires(':BranchCommits', 'vim-lists', 'roumail_lists')
+    return
+  endif
   let l:first = matchstr(a:args, '^\S\+')
   let l:branch = 'HEAD'
   let l:rest = a:args

@@ -157,6 +157,9 @@ function! s:rows(compares) abort
 endfunction
 
 function! fugitive_extras#compares#show() abort
+  if !fugitive_extras#requires(':Compares', 'vim-lists', 'roumail_lists')
+    return
+  endif
   let l:dir = FugitiveGitDir()
   let l:worktree = FugitiveWorkTree()
   if empty(l:worktree)

@@ -149,16 +149,34 @@ named for (`name` may add `#2`), `head` is `''` for the work tree, `tabs` the ta
 
 ## Install
 
-Requires vim-fugitive, [vim-draft](https://github.com/roumail/vim-draft) (the
-buffer `:CommentDraft` writes in, and where saves are kept) and
-[vim-review](https://github.com/roumail/vim-review) (the format comments are
-saved in), and [vim-lists](https://github.com/roumail/vim-lists) (`:Compares`,
-`:BranchCommits`).
+The core is fugitive-extras and
+[vim-fugitive](https://github.com/tpope/vim-fugitive):
 
 ```vim
 Plug 'tpope/vim-fugitive'
-Plug 'roumail/vim-draft'
+Plug 'roumail/fugitive-extras'
+```
+
+That gives you the diffs, `:DiffThis`, `:DiffThis!`, `:BranchDiff` and
+`:DiffClose`, with each `:BranchDiff` kept as a comparison, and
+`fugitive_extras#main_ref()` and `fugitive_extras#compares#list()` for other
+plugins.
+
+Each row below adds a module on top of the core, and **Needs** is the whole
+set of plugins it takes besides the core:
+
+| Needs | Module | Adds |
+| --- | --- | --- |
+| [vim-lists](https://github.com/roumail/vim-lists) | Lists | `:Compares`, the comparisons; `:BranchCommits`, the branch's commits |
+| [vim-draft](https://github.com/roumail/vim-draft) | Review comments | `:Comment`, `:CommentDraft` (a vim-draft draft), `:Comments`, `:CommentsClear`, and `fugitive_extras#comments#list()` |
+| vim-draft + [vim-review](https://github.com/roumail/vim-review) | Saved comments | `:CommentsSave` and `:CommentsLoad` in vim-review's format, kept per branch where vim-draft keeps plugins' files |
+
+All of it:
+
+```vim
+Plug 'tpope/vim-fugitive'
 Plug 'roumail/vim-lists'
+Plug 'roumail/vim-draft'
 Plug 'roumail/vim-review'
 Plug 'roumail/fugitive-extras'
 ```
