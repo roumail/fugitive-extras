@@ -91,9 +91,17 @@ function! fugitive_extras#branch_commits(args) abort
     let l:rest = substitute(a:args, '^\S\+\s*', '', '')
   endif
   let l:base = s:base(l:branch)
-  if !empty(l:base)
-    execute 'Git log --oneline --decorate' l:base . '..' . l:branch l:rest
+  if empty(l:base)
+    return
   endif
+  try
+    " % and # are this buffer's file, as on any command line
+    let l:args = split(expandcmd(l:rest))
+  catch
+    call fugitive_extras#error(v:exception)
+    return
+  endtry
+  call fugitive_extras#commits#show(l:branch, l:base, l:args)
 endfunction
 
 function! fugitive_extras#complete_branch(lead, cmdline, pos) abort

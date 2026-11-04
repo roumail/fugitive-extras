@@ -23,14 +23,15 @@ command! -bang DiffThis call fugitive_extras#diff_this(<bang>0)
 " One tab per changed file, each a diff against the merge-base with main
 command! -nargs=? -complete=customlist,fugitive_extras#complete_branch
       \ BranchDiff call fugitive_extras#branch_diff(<q-args>)
-" Commits on the branch that main doesn't have; further args go to git log
+" Commits on the branch that main doesn't have, a vim-lists list; further
+" args pick which (git log's --author=..., -- paths)
 command! -nargs=* -complete=customlist,fugitive_extras#complete_commits
       \ BranchCommits call fugitive_extras#branch_commits(<q-args>)
 " Close the :BranchDiff comparison (name, else this tab's), which stays in
 " :Compares; outside one, the fugitive side of the diff in this tab
 command! -nargs=? -complete=customlist,fugitive_extras#compares#complete
       \ DiffClose call fugitive_extras#diff_close(<q-args>)
-" The :BranchDiff comparisons of this session; <CR> reopens one, d removes
+" The :BranchDiff comparisons of this session; <CR> reopens one, dd removes
 command! Compares call fugitive_extras#compares#show()
 
 nnoremap <Plug>(fugitive-extras-diff-this) <Cmd>DiffThis<CR>

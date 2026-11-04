@@ -24,7 +24,7 @@ new remote branches.
 | `:DiffThis` | `<Plug>(fugitive-extras-diff-this)` | `:Gvdiffsplit`: index on the left, working tree on the right. `dp` on a hunk in the working tree stages it, `do` in the index unstages it; `:w` the index buffer to keep it. |
 | `:DiffThis!` | `<Plug>(fugitive-extras-diff-main)` | The current file at the merge-base on the left, working tree on the right: what the branch changes in it. |
 | `:BranchDiff [branch]` | `<Plug>(fugitive-extras-branch-diff)` | One tab per changed file, each already a diff against the merge-base (`:Git difftool -y`), listed in `:Compares`. |
-| `:BranchCommits [branch] [args]` | `<Plug>(fugitive-extras-branch-commits)` | Commits on the branch that main lacks (`:Git log base..branch`). `<CR>` on a commit opens it. Extra args go to `git log`, e.g. `:BranchCommits --stat` or `:BranchCommits -- %`. |
+| `:BranchCommits [branch] [args]` | `<Plug>(fugitive-extras-branch-commits)` | Commits on the branch that main lacks (`git log base..branch`), newest first, in a [vim-lists](https://github.com/roumail/vim-lists) list: hash, author, age, subject. `<CR>` opens a commit in fugitive, in the window above; `/` filters on subject, author and hash; `r` refreshes; `q` closes. Extra args pick which commits, as `git log`'s do: `:BranchCommits --author=mira`, `:BranchCommits -- %` (the commits that change this file). Each commit stays one line; for `--stat` and the like, `:Git log`. |
 | `:DiffClose [name]` | `<Plug>(fugitive-extras-diff-close)` | Close the tabs of a `:BranchDiff` comparison: `name` (`<Tab>` completes names), else the one this tab is in. From one of its tabs, go back to the window `:BranchDiff` was run from. It stays in `:Compares`; a tab with unsaved changes stays open. Outside a comparison, close the `fugitive://` windows in this tab and `:diffoff!`. |
 | `:Compares` | `<Plug>(fugitive-extras-compares)` | The comparisons `:BranchDiff` opened, newest first (see below). |
 
@@ -152,7 +152,8 @@ named for (`name` may add `#2`), `head` is `''` for the work tree, `tabs` the ta
 Requires vim-fugitive, [vim-draft](https://github.com/roumail/vim-draft) (the
 buffer `:CommentDraft` writes in, and where saves are kept) and
 [vim-review](https://github.com/roumail/vim-review) (the format comments are
-saved in), and [vim-lists](https://github.com/roumail/vim-lists) (`:Compares`).
+saved in), and [vim-lists](https://github.com/roumail/vim-lists) (`:Compares`,
+`:BranchCommits`).
 With [vim-requires](https://github.com/roumail/vim-requires), Vim
 shows `fugitive-extras: requires …` at startup when one isn't loaded.
 

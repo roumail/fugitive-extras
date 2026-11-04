@@ -174,6 +174,51 @@ function! s:test_compares_list() abort
   silent! tabonly!
 endfunction
 
+function! s:test_branch_commits_list() abort
+  call s:git('checkout', '-q', '-b', 'feature')
+  call writefile(['one', 'TWO', 'three'], s:repo . '/a.txt')
+  call s:git('commit', '-q', '-am', 'change a')
+  call writefile(['b'], s:repo . '/b.txt')
+  call s:git('add', 'b.txt')
+  call s:git('commit', '-q', '-m', 'add b')
+  " main is local here, with no origin
+  edit a.txt
+  BranchCommits
+  call assert_equal('fugitive-extras://commits/repo', bufname())
+  call assert_equal('Commits on feature not on main (2)  <CR> commit  / filter  r refresh  q close',
+        \ getline(1))
+  call assert_match('^\x\{7,}  t \+\S.* ago \+add b (HEAD -> feature)$', getline(2))
+  call assert_match('  change a$', getline(3))
+  call assert_equal(2, line('.'))
+  call assert_equal('add b', roumail_lists#item().subject)
+  " <CR>: the commit in fugitive, in the window above
+  let l:sha = roumail_lists#item().sha
+  execute "normal \<CR>"
+  call assert_match('^fugitive://.*' . l:sha . '$', bufname())
+  wincmd p
+  " / filters on the subject
+  call feedkeys("/chg\<CR>", 'x')
+  call assert_equal(2, line('$'))
+  call assert_match('change a$', getline(2))
+  normal q
+  " Paths: only the commits that change this file
+  edit a.txt
+  BranchCommits -- %
+  call assert_equal(2, line('$'))
+  call assert_match('change a$', getline(2))
+  normal q
+  " An option picking commits
+  BranchCommits --grep=add
+  call assert_equal(2, line('$'))
+  call assert_match('add b', getline(2))
+  " One that adds lines leaves each commit one line
+  normal q
+  BranchCommits --stat
+  call assert_equal(3, line('$'))
+  normal q
+  silent! only
+endfunction
+
 let s:prefix = expand('<SID>') . 'test_'
 
 let s:failed = 0
