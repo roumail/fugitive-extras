@@ -168,8 +168,8 @@ function! fugitive_extras#compares#show() abort
         \ 'heading': function('s:heading'), 'rows': function('s:rows'),
         \ 'id': {c -> c.name},
         \ 'match': {c -> c.name . ' ' . c.branch . ' ' . (empty(c.head) ? 'work tree' : c.head)},
-        \ 'keys': [{'key': '<CR>', 'hint': 'open', 'call': function('s:open')},
-        \          {'key': 'd', 'hint': 'remove', 'call': function('s:remove')}]},
+        \ 'delete': {c -> fugitive_extras#compares#remove(b:fugitive_extras_dir, c.name)},
+        \ 'keys': [{'key': '<CR>', 'hint': 'open', 'call': function('s:open')}]},
         \ {'fugitive_extras_dir': l:dir})
 endfunction
 
@@ -182,12 +182,4 @@ function! s:open() abort
   call roumail_lists#close()
   call fugitive_extras#compares#open(l:dir, l:compare.branch, l:compare.base,
         \ l:compare.head, l:compare.name)
-endfunction
-
-function! s:remove() abort
-  let l:compare = roumail_lists#item()
-  if !empty(l:compare)
-    call fugitive_extras#compares#remove(b:fugitive_extras_dir, l:compare.name)
-    call roumail_lists#refresh()
-  endif
 endfunction

@@ -159,14 +159,14 @@ function! s:test_compares_list() abort
   tabfirst
   Compares
   call assert_equal('fugitive-extras://compares/repo', bufname())
-  call assert_equal('Comparisons (1)  <CR> open  d remove  / filter  r refresh  q close',
+  call assert_equal('Comparisons (1)  <CR> open  dd remove  / filter  r refresh  q close',
         \ getline(1))
   call assert_match('^feature \+' . l:base[:6] . '\.\.' . l:head[:6] . '\x* \+1 files \+1 open',
         \ getline(2))
   call assert_equal(2, line('.'))
   call assert_equal('feature', roumail_lists#item().name)
-  normal d
-  call assert_equal(['Comparisons (0)  <CR> open  d remove  / filter  r refresh  q close'],
+  normal dd
+  call assert_equal(['Comparisons (0)  <CR> open  dd remove  / filter  r refresh  q close'],
         \ getline(1, '$'))
   call assert_equal([], fugitive_extras#compares#list())
   normal q

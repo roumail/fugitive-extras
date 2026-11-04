@@ -53,13 +53,13 @@ and age.
 | Key | Action |
 | --- | --- |
 | `<CR>` | Close the list and open all its files again, in new tabs, against the same merge-base. `:BranchDiff` again to diff against a new one. |
-| `d` | Remove it from the list. Its tabs stay open. To close them too, run `:DiffClose <name>` before removing it. |
+| `dd` | Remove it from the list. Its tabs stay open. To close them too, run `:DiffClose <name>` before removing it. |
 | `/` | Filter the list as you type, on name, branch and head. |
 | `r` | Refresh. The cursor stays on its comparison. |
 | `q` | Close (`:q` too: the list has its own window). |
 
-The list is a [vim-lists](https://github.com/roumail/vim-lists) list: `/`,
-`r` and `q` are the same as in the other lists.
+The list is a [vim-lists](https://github.com/roumail/vim-lists) list: `dd`,
+`/`, `r` and `q` are the same as in the other lists.
 
 ## Review comments
 
