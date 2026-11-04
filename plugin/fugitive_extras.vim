@@ -3,17 +3,6 @@ if exists('g:loaded_fugitive_extras')
 endif
 let g:loaded_fugitive_extras = 1
 
-" roumail/vim-requires is optional
-try
-  call roumail_requires#check('fugitive-extras', {
-        \ 'tpope/vim-fugitive': 'g:loaded_fugitive',
-        \ 'roumail/vim-draft': 'g:loaded_roumail_draft',
-        \ 'roumail/vim-lists': 'g:loaded_roumail_lists',
-        \ 'roumail/vim-review': 'g:loaded_review',
-        \ })
-catch /^Vim\%((\a\+)\)\=:E117:/
-endtry
-
 " Index | working tree: dp/do move hunks, :w in the index buffer stages.
 " With !, the file at the merge-base with main | working tree (what the PR
 " changes).

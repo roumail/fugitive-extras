@@ -154,15 +154,12 @@ buffer `:CommentDraft` writes in, and where saves are kept) and
 [vim-review](https://github.com/roumail/vim-review) (the format comments are
 saved in), and [vim-lists](https://github.com/roumail/vim-lists) (`:Compares`,
 `:BranchCommits`).
-With [vim-requires](https://github.com/roumail/vim-requires), Vim
-shows `fugitive-extras: requires …` at startup when one isn't loaded.
 
 ```vim
 Plug 'tpope/vim-fugitive'
 Plug 'roumail/vim-draft'
 Plug 'roumail/vim-lists'
 Plug 'roumail/vim-review'
-Plug 'roumail/vim-requires'  " optional: the startup warning
 Plug 'roumail/fugitive-extras'
 ```
 
