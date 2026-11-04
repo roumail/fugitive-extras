@@ -72,9 +72,13 @@ loaded back.
 | `:CommentsLoad [file]` | | Replace the `Review` list with the comments in the file, each moved to where its lines are now; without `file`, the latest save of the branch. `<Tab>` lists the saves, newest first, then files. |
 | `:CommentsClear` | | Empty the `Review` list, as quitting Vim would. Saves are kept, so `:CommentsLoad` brings them back. |
 
-- A comment goes on a file in the work tree or on the branch side of a diff;
-  the merge-base side is refused, and so is a file outside a git work tree.
-  Paths are relative to the repo root.
+- In a repository, a comment goes on a file in the work tree or on the
+  branch side of a diff; the merge-base side is refused. Paths are relative
+  to the repo root.
+- Outside a repository, a comment goes on a file under the current
+  directory, with paths relative to it, and saves are kept per directory
+  (where vim-draft keeps plugins' files outside a repository). The points
+  below about branches don't apply.
 - Comments are on the branch a tab's comparison diffs (`:BranchDiff feature`),
   else on the checked-out branch, so two comparisons of different branches
   open at once keep their comments apart; comparisons of the same branch

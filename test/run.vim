@@ -19,6 +19,7 @@ execute 'source' fnameescape(expand('<sfile>:p:h:h') . '/plugin/fugitive_extras.
 
 let s:tmp = resolve(tempname())
 let s:repo = s:tmp . '/repo'
+let g:roumail_draft_save_dir = s:tmp . '/saves'
 let s:out = []
 
 function! s:git(...) abort
@@ -69,12 +70,50 @@ function! s:test_load_agent_comments() abort
         \ fugitive_extras#comments#list())
 endfunction
 
-function! s:test_comment_outside_a_repository() abort
-  call mkdir(s:tmp . '/plain')
-  execute 'edit' fnameescape(s:tmp . '/plain/b.txt')
-  let l:messages = execute('Comment no repository')
-  call assert_equal("\nfugitive-extras: not a file in the git work tree", l:messages)
-  call assert_equal([], fugitive_extras#comments#list())
+function! s:test_comments_outside_a_repository() abort
+  for l:dir in ['notes', 'talks']
+    call mkdir(s:tmp . '/' . l:dir)
+    call writefile(['first', 'second'], s:tmp . '/' . l:dir . '/b.txt')
+  endfor
+  execute 'cd' fnameescape(s:tmp . '/notes')
+  edit b.txt
+  2Comment in notes
+  CommentsSave
+  CommentsClear
+  CommentsLoad
+  call assert_equal([{'path': 'b.txt', 'start': 2, 'end': 2, 'body': 'in notes'}],
+        \ fugitive_extras#comments#list())
+  " A file outside the current directory
+  execute 'edit' fnameescape(s:tmp . '/talks/b.txt')
+  call assert_equal("\nfugitive-extras: not a file under " . fnamemodify(s:tmp . '/notes', ':~'),
+        \ execute('Comment elsewhere'))
+  " Another directory's saves are its own
+  CommentsClear
+  execute 'cd' fnameescape(s:tmp . '/talks')
+  call assert_equal("\nfugitive-extras: no saved comments", execute('CommentsLoad'))
+endfunction
+
+function! s:test_comments_per_branch() abort
+  edit a.txt
+  1Comment on main
+  silent Git checkout -q -b feature
+  call assert_equal("\nfugitive-extras: unsaved review comments from main (:CommentsSave)\nReview comments: 2",
+        \ execute('2Comment on feature'))
+  call fugitive_extras#comments#clear()
+  2Comment on feature
+  CommentsSave
+  silent Git checkout -q main
+  CommentsClear
+  1Comment on main
+  CommentsSave
+  CommentsClear
+  CommentsLoad
+  call assert_equal([{'path': 'a.txt', 'start': 1, 'end': 1, 'body': 'on main'}],
+        \ fugitive_extras#comments#list())
+  silent Git checkout -q feature
+  CommentsLoad
+  call assert_equal([{'path': 'a.txt', 'start': 2, 'end': 2, 'body': 'on feature'}],
+        \ fugitive_extras#comments#list())
 endfunction
 
 function! s:test_deleted_branch_saves_go() abort

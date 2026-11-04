@@ -2,7 +2,7 @@ let s:title = 'Review'
 let s:context = 2
 
 function! s:prefix() abort
-  return FugitiveWorkTree() . '/'
+  return roumail_draft#place().dir . '/'
 endfunction
 
 " The branch comments are on: the one this tab's :BranchDiff compares, else
@@ -27,7 +27,8 @@ function! s:scope() abort
 endfunction
 
 function! s:save_dir() abort
-  return roumail_draft#dir('fugitive-extras/comments/' . s:scope())
+  let l:scope = s:scope()
+  return roumail_draft#dir('fugitive-extras/comments' . (empty(l:scope) ? '' : '/' . l:scope))
 endfunction
 
 " Common git dirs pruned this session
@@ -115,14 +116,22 @@ endfunction
 
 function! s:target(line1, line2) abort
   call fugitive_extras#comments#check()
-  let l:path = empty(FugitiveWorkTree()) ? '' : FugitivePath(@%, '')
-  if empty(l:path) || l:path =~# '^/'
+  let l:place = roumail_draft#place()
+  if !l:place.repo
+    let l:file = expand('%:p')
+    if !empty(&buftype) || empty(l:file) || stridx(l:file, l:place.dir . '/') != 0
+      call fugitive_extras#error('not a file under ' . fnamemodify(l:place.dir, ':~'))
+      return {}
+    endif
+    let l:path = l:file[len(l:place.dir) + 1:]
+  elseif empty(FugitiveWorkTree()) || FugitivePath(@%, '') =~# '^/\|^$'
     call fugitive_extras#error('not a file in the git work tree')
     return {}
-  endif
-  if @% =~# '^fugitive://' && fugitive_extras#is_base(FugitiveParse(@%)[0])
+  elseif @% =~# '^fugitive://' && fugitive_extras#is_base(FugitiveParse(@%)[0])
     call fugitive_extras#error('comment on the branch side of the diff, not the merge-base')
     return {}
+  else
+    let l:path = FugitivePath(@%, '')
   endif
   let l:item = {'filename': s:prefix() . l:path, 'lnum': a:line1}
   if a:line2 != a:line1
