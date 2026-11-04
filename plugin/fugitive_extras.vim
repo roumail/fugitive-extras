@@ -7,6 +7,8 @@ let g:loaded_fugitive_extras = 1
 try
   call roumail_requires#check('fugitive-extras', {
         \ 'tpope/vim-fugitive': 'g:loaded_fugitive',
+        \ 'roumail/vim-draft': 'g:loaded_roumail_draft',
+        \ 'roumail/vim-review': 'g:loaded_review',
         \ })
 catch /^Vim\%((\a\+)\)\=:E117:/
 endtry
@@ -37,14 +39,28 @@ nnoremap <Plug>(fugitive-extras-branch-commits) <Cmd>BranchCommits<CR>
 nnoremap <Plug>(fugitive-extras-diff-close) <Cmd>DiffClose<CR>
 nnoremap <Plug>(fugitive-extras-compares) <Cmd>Compares<CR>
 
-" vim-review's comments go on the branch side of a diff and are saved per
-" branch (their scope): the one this tab compares, else the checked-out one.
-" Lambdas, not function('Fugitive...'): fugitive may load after this.
-let g:review_provider = {
-      \ 'root': {-> FugitiveWorkTree()},
-      \ 'target': function('fugitive_extras#comments#target'),
-      \ 'scope': function('fugitive_extras#comments#scope'),
-      \ }
+" Comments go on the branch side of a diff and are saved per branch: the one
+" this tab compares, else the checked-out one.
+" Comment on the line or range; prompts unless the comment is given
+command! -range -nargs=* Comment call fugitive_extras#comments#add(<line1>, <line2>, <q-args>)
+" The same, written in a buffer (:w saves, closing it adds the comment)
+command! -range -nargs=* CommentDraft call fugitive_extras#comments#edit(<line1>, <line2>, <q-args>)
+" Open the 'Review' list
+command! Comments call fugitive_extras#comments#open()
+" Write the comments to a file (default: a new timestamped save) and load
+" them back (default: the latest save)
+command! -nargs=? -complete=file CommentsSave call fugitive_extras#comments#save(<q-args>)
+command! -nargs=? -complete=customlist,fugitive_extras#comments#complete_load
+      \ CommentsLoad call fugitive_extras#comments#load(<q-args>)
+" Empty the 'Review' list; saves are kept
+command! CommentsClear call fugitive_extras#comments#clear()
+
+" They leave :Comment on the command line to finish; turning it into
+" :CommentDraft takes the text to an editor
+nnoremap <Plug>(fugitive-extras-comment) :<C-u>Comment<Space>
+xnoremap <Plug>(fugitive-extras-comment) :Comment<Space>
+nnoremap <Plug>(fugitive-extras-comment-draft) <Cmd>CommentDraft<CR>
+xnoremap <Plug>(fugitive-extras-comment-draft) :CommentDraft<CR>
 
 augroup fugitive_extras
   autocmd!
@@ -52,4 +68,7 @@ augroup fugitive_extras
   autocmd User FugitiveChanged call fugitive_extras#comments#check()
   " A :Git branch -d or fetch --prune may have deleted a branch with saves
   autocmd User FugitiveChanged call fugitive_extras#comments#prune()
+  " c changes a comment in the 'Review' list's window
+  autocmd FileType qf nnoremap <buffer> <silent> c
+        \ <Cmd>call fugitive_extras#comments#change(line('.'), 'c')<CR>
 augroup END
