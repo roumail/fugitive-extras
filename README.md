@@ -96,7 +96,10 @@ loaded back.
   session, and after every `:Git` command. Which were deleted is in
   `:messages`.
 - Switching branches with `:Git checkout`, or commenting in a tab of another
-  branch's comparison, while comments are unsaved warns. Nothing is cleared.
+  branch's comparison, empties the `Review` list when its comments are
+  saved, so they aren't taken for the new branch's (`:CommentsLoad` on their
+  branch brings them back). While any is unsaved, added or changed since the
+  last save, it warns instead and nothing is cleared.
 
 To take a comment you're typing to an editor, change `Comment` to
 `CommentDraft` on the command line (`<C-b>` goes to its start) and press

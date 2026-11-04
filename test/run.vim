@@ -102,8 +102,10 @@ function! s:test_comments_per_branch() abort
   call fugitive_extras#comments#clear()
   2Comment on feature
   CommentsSave
-  silent Git checkout -q main
-  CommentsClear
+  " Saved, so they leave the list with their branch
+  call assert_match("\nfugitive-extras: saved review comments of feature left the list (:CommentsLoad on feature)$",
+        \ execute('Git checkout -q main'))
+  call assert_equal([], fugitive_extras#comments#list())
   1Comment on main
   CommentsSave
   CommentsClear
@@ -111,8 +113,25 @@ function! s:test_comments_per_branch() abort
   call assert_equal([{'path': 'a.txt', 'start': 1, 'end': 1, 'body': 'on main'}],
         \ fugitive_extras#comments#list())
   silent Git checkout -q feature
+  call assert_equal([], fugitive_extras#comments#list())
   CommentsLoad
   call assert_equal([{'path': 'a.txt', 'start': 2, 'end': 2, 'body': 'on feature'}],
+        \ fugitive_extras#comments#list())
+endfunction
+
+function! s:test_comment_changed_after_save_stays() abort
+  edit a.txt
+  silent Git checkout -q -b feature
+  2Comment first
+  CommentsSave
+  Comments
+  execute "normal c"
+  call setline(1, 'changed')
+  write
+  quit
+  call assert_match("\nfugitive-extras: unsaved review comments from feature (:CommentsSave)$",
+        \ execute('Git checkout -q main'))
+  call assert_equal([{'path': 'a.txt', 'start': 2, 'end': 2, 'body': 'changed'}],
         \ fugitive_extras#comments#list())
 endfunction
 

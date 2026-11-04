@@ -104,13 +104,30 @@ function! s:items() abort
   return getqflist({'id': s:list_id(), 'items': 1}).items
 endfunction
 
+" The list's context is the branch its comments are on, and whether any
+" isn't saved
+function! s:mark(unsaved) abort
+  call setqflist([], 'a', {'id': s:list_id(),
+        \ 'context': {'scope': s:scope(), 'unsaved': a:unsaved}})
+endfunction
+
+" Comments of another branch than now: unsaved ones warn, and nothing is
+" cleared; saved ones leave the list, so they aren't taken for this branch's
 function! fugitive_extras#comments#check() abort
   let l:id = s:find_id()
-  let l:scope = l:id ? getqflist({'id': l:id, 'context': 0}).context : ''
-  if type(l:scope) == v:t_string && !empty(l:scope) && l:scope !=# s:scope()
+  let l:context = l:id ? getqflist({'id': l:id, 'context': 0}).context : {}
+  let l:scope = type(l:context) == v:t_dict ? get(l:context, 'scope', '') : ''
+  if empty(l:scope) || l:scope ==# s:scope()
+    return
+  endif
+  if l:context.unsaved
     echohl WarningMsg
     echomsg 'fugitive-extras: unsaved review comments from ' . l:scope . ' (:CommentsSave)'
     echohl None
+  else
+    call fugitive_extras#comments#clear()
+    echomsg 'fugitive-extras: saved review comments of ' . l:scope
+          \ . ' left the list (:CommentsLoad on ' . l:scope . ')'
   endif
 endfunction
 
@@ -142,8 +159,8 @@ function! s:target(line1, line2) abort
 endfunction
 
 function! s:append(item) abort
-  call setqflist([], 'a', {'id': s:list_id(), 'items': [a:item], 'context': s:scope()})
-  return len(s:items()) - 1
+  call setqflist([], 'a', {'id': s:list_id(), 'items': [a:item]})
+  call s:mark(1)
 endfunction
 
 let s:unsent = {}
@@ -240,6 +257,7 @@ function! s:change_comment(item, text) abort
   endif
   let l:items[l:i].text = a:text
   call setqflist([], 'r', {'id': s:find_id(), 'items': l:items, 'idx': l:i + 1})
+  call s:mark(1)
   echo 'Comment changed'
 endfunction
 
@@ -269,7 +287,7 @@ function! fugitive_extras#comments#list() abort
 endfunction
 
 function! fugitive_extras#comments#clear() abort
-  call setqflist([], 'r', {'id': s:list_id(), 'items': [], 'context': ''})
+  call setqflist([], 'r', {'id': s:list_id(), 'items': [], 'context': {}})
 endfunction
 
 function! s:lines(bufnr) abort
@@ -337,7 +355,7 @@ function! fugitive_extras#comments#save(file) abort
   else
     call writefile(l:anchors, l:file . '.anchors')
   endif
-  call setqflist([], 'a', {'id': s:list_id(), 'context': ''})
+  call s:mark(0)
   echo 'Saved ' . len(l:comments) . ' review comments to ' . fnamemodify(l:file, ':~')
 endfunction
 
@@ -377,7 +395,8 @@ function! fugitive_extras#comments#load(file) abort
     let l:found = get(l:sidecar, s:key(l:c), [])
     call add(l:anchors, empty(l:found) ? {} : remove(l:found, 0))
   endfor
-  call setqflist([], 'r', {'id': s:list_id(), 'items': l:items, 'context': ''})
+  call setqflist([], 'r', {'id': s:list_id(), 'items': l:items})
+  call s:mark(0)
 
   let l:items = s:items()
   let l:trimmed = {}
