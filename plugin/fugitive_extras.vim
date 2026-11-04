@@ -38,12 +38,11 @@ nnoremap <Plug>(fugitive-extras-diff-close) <Cmd>DiffClose<CR>
 nnoremap <Plug>(fugitive-extras-compares) <Cmd>Compares<CR>
 
 " vim-review's comments go on the branch side of a diff and are saved per
-" branch: the one this tab compares, else the checked-out one. Lambdas, not
-" function('Fugitive...'): fugitive may load after this.
+" branch (their scope): the one this tab compares, else the checked-out one.
+" Lambdas, not function('Fugitive...'): fugitive may load after this.
 let g:review_provider = {
       \ 'root': {-> FugitiveWorkTree()},
       \ 'target': function('fugitive_extras#comments#target'),
-      \ 'save_dir': function('fugitive_extras#comments#save_dir'),
       \ 'scope': function('fugitive_extras#comments#scope'),
       \ }
 
@@ -52,6 +51,5 @@ augroup fugitive_extras
   " Warn after a :Git checkout that left unsaved comments from another branch
   autocmd User FugitiveChanged call fugitive_extras#comments#check()
   " A :Git branch -d or fetch --prune may have deleted a branch with saves
-  autocmd User FugitiveChanged if !empty(FugitiveCommonDir())
-        \ | call fugitive_extras#comments#prune(FugitiveCommonDir()) | endif
+  autocmd User FugitiveChanged call fugitive_extras#comments#prune()
 augroup END

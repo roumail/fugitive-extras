@@ -17,6 +17,12 @@ endfunction
 " the checked-out one. origin/feature is feature, so its comments are found
 " again after checking it out.
 function! fugitive_extras#comments#scope() abort
+  " Once a session per repository, as saves are kept per branch: those of
+  " branches deleted outside Vim go too
+  let l:common = FugitiveCommonDir()
+  if !empty(l:common) && !has_key(s:pruned, l:common)
+    call fugitive_extras#comments#prune()
+  endif
   let l:compare = fugitive_extras#compares#current()
   if empty(get(l:compare, 'head', '')) || l:compare.dir !=# FugitiveGitDir()
     return FugitiveHead(7)
@@ -31,29 +37,20 @@ endfunction
 " Common git dirs pruned this session
 let s:pruned = {}
 
-function! fugitive_extras#comments#save_dir() abort
-  " In the git dir shared by all work trees, so saves are never committed
-  let l:common = FugitiveCommonDir()
-  let l:head = fugitive_extras#comments#scope()
-  if !empty(l:common) && !has_key(s:pruned, l:common)
-    call fugitive_extras#comments#prune(l:common)
-  endif
-  return empty(l:common) || empty(l:head) ? ''
-        \ : l:common . '/vim-review/' . l:head
-endfunction
-
-" Deletes the saves of branches gone from the repository with the common git
-" dir common: neither a local branch nor any remote's (origin/feature keeps
+" Deletes vim-review's saves of branches gone from the current repository:
+" neither a local branch nor any remote's (origin/feature keeps
 " feature's), nor anything else that names a commit (a tag, or the commit
 " saves of a detached HEAD are under). A deleted branch's remote one goes on
 " a fetch with --prune, or once GitHub deletes it after a merge.
-function! fugitive_extras#comments#prune(common) abort
-  let s:pruned[a:common] = 1
-  let l:root = a:common . '/vim-review'
-  if !isdirectory(l:root)
+function! fugitive_extras#comments#prune() abort
+  let l:common = FugitiveCommonDir()
+  if empty(l:common) || !exists('g:loaded_review')
     return
   endif
-  let l:refs = FugitiveExecute(['for-each-ref', '--format=%(refname)'], a:common)
+  let s:pruned[l:common] = 1
+  " Where vim-review keeps its saves, as vim-draft says
+  let l:root = roumail_draft#dir('vim-review')
+  let l:refs = FugitiveExecute(['for-each-ref', '--format=%(refname)'], l:common)
   if l:refs.exit_status != 0
     return
   endif
@@ -69,7 +66,7 @@ function! fugitive_extras#comments#prune(common) abort
   for l:dir in keys(l:dirs)
     let l:name = strpart(l:dir, len(l:root) + 1)
     if has_key(l:names, l:name) || FugitiveExecute(['rev-parse', '--verify', '--quiet',
-          \ l:name . '^{commit}'], a:common).exit_status == 0
+          \ l:name . '^{commit}'], l:common).exit_status == 0
       continue
     endif
     " Its files only: feature/x's saves may be under feature's
