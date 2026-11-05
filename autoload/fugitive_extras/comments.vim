@@ -2,7 +2,7 @@ let s:title = 'Review'
 let s:context = 2
 
 function! s:prefix() abort
-  return roumail_draft#place().dir . '/'
+  return roumail_place#get().dir . '/'
 endfunction
 
 " The branch comments are on: the one this tab's :BranchDiff compares, else
@@ -28,7 +28,7 @@ endfunction
 
 function! s:save_dir() abort
   let l:scope = s:scope()
-  return roumail_draft#dir('fugitive-extras/comments' . (empty(l:scope) ? '' : '/' . l:scope))
+  return roumail_place#dir('fugitive-extras/comments' . (empty(l:scope) ? '' : '/' . l:scope))
 endfunction
 
 " Common git dirs pruned this session
@@ -41,12 +41,12 @@ let s:pruned = {}
 " with --prune, or once GitHub deletes it after a merge.
 function! fugitive_extras#comments#prune() abort
   let l:common = FugitiveCommonDir()
-  " It runs after every :Git: without vim-draft there are no saves to prune
-  if empty(l:common) || !fugitive_extras#installed('roumail_draft')
+  " It runs after every :Git: without vim-place there are no saves to prune
+  if empty(l:common) || !fugitive_extras#installed('roumail_place')
     return
   endif
   let s:pruned[l:common] = 1
-  let l:root = roumail_draft#dir('fugitive-extras/comments')
+  let l:root = roumail_place#dir('fugitive-extras/comments')
   let l:refs = FugitiveExecute(['for-each-ref', '--format=%(refname)'], l:common)
   if l:refs.exit_status != 0
     return
@@ -134,7 +134,7 @@ endfunction
 
 function! s:target(line1, line2) abort
   call fugitive_extras#comments#check()
-  let l:place = roumail_draft#place()
+  let l:place = roumail_place#get()
   if !l:place.repo
     let l:file = expand('%:p')
     if !empty(&buftype) || empty(l:file) || stridx(l:file, l:place.dir . '/') != 0
@@ -167,7 +167,7 @@ endfunction
 let s:unsent = {}
 
 function! fugitive_extras#comments#add(line1, line2, text) abort
-  if !fugitive_extras#requires(':Comment', 'vim-draft', 'roumail_draft')
+  if !fugitive_extras#requires(':Comment', 'vim-place', 'roumail_place')
     return
   endif
   let l:target = s:target(a:line1, a:line2)
@@ -206,7 +206,8 @@ function! fugitive_extras#comments#add(line1, line2, text) abort
 endfunction
 
 function! fugitive_extras#comments#edit(line1, line2, text) abort
-  if !fugitive_extras#requires(':CommentDraft', 'vim-draft', 'roumail_draft')
+  if !fugitive_extras#requires(':CommentDraft', 'vim-place', 'roumail_place')
+        \ || !fugitive_extras#requires(':CommentDraft', 'vim-draft', 'roumail_draft')
     return
   endif
   let l:target = s:target(a:line1, a:line2)
@@ -317,7 +318,7 @@ function! s:saves() abort
 endfunction
 
 function! fugitive_extras#comments#complete_load(lead, cmdline, pos) abort
-  if a:lead =~# '[/~.]' || !fugitive_extras#installed('roumail_draft')
+  if a:lead =~# '[/~.]' || !fugitive_extras#installed('roumail_place')
     return getcompletion(a:lead, 'file')
   endif
   return filter(s:saves(), 'stridx(v:val, a:lead) == 0')
@@ -325,7 +326,7 @@ function! fugitive_extras#comments#complete_load(lead, cmdline, pos) abort
 endfunction
 
 function! s:requires_saves(what) abort
-  return fugitive_extras#requires(a:what, 'vim-draft', 'roumail_draft')
+  return fugitive_extras#requires(a:what, 'vim-place', 'roumail_place')
         \ && fugitive_extras#requires(a:what, 'vim-review', 'review')
 endfunction
 

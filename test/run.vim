@@ -2,8 +2,8 @@
 "   vim -Nu NONE -i NONE -Es -S test/run.vim
 " Prints one line per test and exits non-zero when one fails; TEST=<pattern>
 " in the environment runs the tests whose names match. The plugins it needs
-" are vim-plug's copies, unless $FUGITIVE, $VIM_DRAFT, $VIM_LISTS or $VIM_REVIEW name
-" others.
+" are vim-plug's copies, unless $FUGITIVE, $VIM_PLACE, $VIM_DRAFT, $VIM_LISTS or
+" $VIM_REVIEW name others.
 set nocompatible hidden
 execute 'set runtimepath^=' . fnameescape(expand('<sfile>:p:h:h'))
 " Only these plugins: Vim's own ones aren't all quiet in silent Ex mode
@@ -16,11 +16,14 @@ for [s:var, s:name, s:file] in [['FUGITIVE', 'vim-fugitive', 'fugitive.vim'],
   execute 'set runtimepath^=' . fnameescape(s:dir)
   execute 'source' fnameescape(s:dir . '/plugin/' . s:file)
 endfor
+" vim-place is autoload only: no plugin file to source
+execute 'set runtimepath^=' . fnameescape(fnamemodify(empty($VIM_PLACE)
+      \ ? expand('~/.vim/plugged/vim-place') : $VIM_PLACE, ':p:s?/$??'))
 execute 'source' fnameescape(expand('<sfile>:p:h:h') . '/plugin/fugitive_extras.vim')
 
 let s:tmp = resolve(tempname())
 let s:repo = s:tmp . '/repo'
-let g:roumail_draft_save_dir = s:tmp . '/saves'
+let g:roumail_place_dir = s:tmp . '/saves'
 let s:out = []
 
 function! s:git(...) abort

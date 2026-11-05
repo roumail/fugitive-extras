@@ -81,7 +81,7 @@ loaded back.
   to the repo root.
 - Outside a repository, a comment goes on a file under the current
   directory, with paths relative to it, and saves are kept per directory
-  (where vim-draft keeps plugins' files outside a repository). The points
+  (where vim-place keeps plugins' files outside a repository). The points
   below about branches don't apply.
 - Comments are on the branch a tab's comparison diffs (`:BranchDiff feature`),
   else on the checked-out branch, so two comparisons of different branches
@@ -90,7 +90,7 @@ loaded back.
   `feature`.
 - Saves without a file name are per branch and time,
   `fugitive-extras/comments/<branch>/<YYYYmmdd-HHMMSS>.txt` in the git dir
-  (where vim-draft keeps plugins' files), so they are never committed and
+  (where vim-place keeps plugins' files), so they are never committed and
   reviews of different branches stay apart.
 - The saves of a deleted branch are deleted: those of a branch that is
   neither local nor any remote's, nor anything else naming a commit (a tag,
@@ -168,14 +168,16 @@ set of plugins it takes besides the core:
 | Needs | Module | Adds |
 | --- | --- | --- |
 | [vim-lists](https://github.com/roumail/vim-lists) | Lists | `:Compares`, the comparisons; `:BranchCommits`, the branch's commits |
-| [vim-draft](https://github.com/roumail/vim-draft) | Review comments | `:Comment`, `:CommentDraft` (a vim-draft draft), `:Comments`, `:CommentsClear`, and `fugitive_extras#comments#list()` |
-| vim-draft + [vim-review](https://github.com/roumail/vim-review) | Saved comments | `:CommentsSave` and `:CommentsLoad` in vim-review's format, kept per branch where vim-draft keeps plugins' files |
+| [vim-place](https://github.com/roumail/vim-place) | Review comments | `:Comment`, `:Comments`, `:CommentsClear`, and `fugitive_extras#comments#list()` |
+| vim-place + [vim-draft](https://github.com/roumail/vim-draft) | Comments in a draft | `:CommentDraft` |
+| vim-place + [vim-review](https://github.com/roumail/vim-review) | Saved comments | `:CommentsSave` and `:CommentsLoad` in vim-review's format, kept per branch where vim-place keeps plugins' files |
 
 All of it:
 
 ```vim
 Plug 'tpope/vim-fugitive'
 Plug 'roumail/vim-lists'
+Plug 'roumail/vim-place'
 Plug 'roumail/vim-draft'
 Plug 'roumail/vim-review'
 Plug 'roumail/fugitive-extras'
@@ -187,5 +189,6 @@ Plug 'roumail/fugitive-extras'
 vim -Nu NONE -i NONE -Es -S test/run.vim
 ```
 
-They use vim-plug's copies of vim-fugitive, vim-draft and vim-review, unless
-`$FUGITIVE`, `$VIM_DRAFT` or `$VIM_REVIEW` name other clones.
+They use vim-plug's copies of the plugins, unless
+`$FUGITIVE`, `$VIM_PLACE`, `$VIM_DRAFT`, `$VIM_LISTS` or `$VIM_REVIEW` name other
+clones.
