@@ -7,6 +7,10 @@ let g:loaded_fugitive_extras = 1
 " With !, the file at the merge-base with main | working tree (what the PR
 " changes).
 command! -bang DiffThis call fugitive_extras#diff_this(<bang>0)
+" The file as the last commit (or rev) changed it: its parent | the commit;
+" with !, its parent | working tree
+command! -bang -nargs=? -complete=customlist,fugitive_extras#complete_branch
+      \ DiffCommit call fugitive_extras#diff_commit(<bang>0, <q-args>)
 " The commands below take an optional branch (default HEAD), e.g.
 " origin/feature, to review it without checking it out.
 " One tab per file the branch's commits change, each a diff against the
@@ -29,6 +33,8 @@ command! Compares call fugitive_extras#compares#show()
 
 nnoremap <Plug>(fugitive-extras-diff-this) <Cmd>DiffThis<CR>
 nnoremap <Plug>(fugitive-extras-diff-main) <Cmd>DiffThis!<CR>
+nnoremap <Plug>(fugitive-extras-diff-commit) <Cmd>DiffCommit<CR>
+nnoremap <Plug>(fugitive-extras-diff-commit-worktree) <Cmd>DiffCommit!<CR>
 nnoremap <Plug>(fugitive-extras-branch-diff) <Cmd>BranchDiff<CR>
 nnoremap <Plug>(fugitive-extras-branch-diff-worktree) <Cmd>BranchDiff!<CR>
 nnoremap <Plug>(fugitive-extras-diff-refresh) <Cmd>DiffRefresh<CR>

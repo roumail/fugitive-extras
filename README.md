@@ -11,7 +11,8 @@ Diffs are against the **merge-base** of `HEAD` and main, so they show only
 what this branch changes, not what landed on main since it forked.
 `:BranchDiff` shows what the branch's commits change, as the PR would;
 `:BranchDiff!` and `:DiffThis!` show the work tree, uncommitted changes
-included.
+included. `:DiffCommit` is the exception: one commit's change, from its
+parent, and `:DiffCommit!` from its parent to the work tree.
 
 The `:Branch*` commands show the branch like a PR's tabs on GitHub: its
 changed files as diffs, and its commits. They take a
@@ -25,6 +26,8 @@ new remote branches.
 | --- | --- | --- |
 | `:DiffThis` | `<Plug>(fugitive-extras-diff-this)` | `:Gvdiffsplit`: index on the left, working tree on the right. `dp` on a hunk in the working tree stages it, `do` in the index unstages it; `:w` the index buffer to keep it. |
 | `:DiffThis!` | `<Plug>(fugitive-extras-diff-main)` | The current file at the merge-base on the left, working tree on the right: what the branch changes in it. |
+| `:DiffCommit [rev]` | `<Plug>(fugitive-extras-diff-commit)` | The current file as the last commit changed it: `HEAD^` on the left, `HEAD` on the right. With `rev` (`:DiffCommit HEAD~3`, a branch), that commit and its parent. |
+| `:DiffCommit! [rev]` | `<Plug>(fugitive-extras-diff-commit-worktree)` | The commit's parent on the left, working tree on the right: what the commit changed and what came since, uncommitted too, as `!` is for `:BranchDiff!`. |
 | `:BranchDiff [branch]` | `<Plug>(fugitive-extras-branch-diff)` | One tab per file the branch's commits change, each already a diff from the merge-base, on the left, to the branch's last commit, on the right (`:Git difftool -y`), listed in `:Compares`. Both sides are read-only. Uncommitted changes, a stash you applied say, are left out. |
 | `:BranchDiff!` | `<Plug>(fugitive-extras-branch-diff-worktree)` | The checked-out branch's work tree instead, committed or not: the merge-base on the left, its files as they are now on the right, to edit and stage in the diff. |
 | `:DiffRefresh` | `<Plug>(fugitive-extras-diff-refresh)` | In a `:BranchDiff` tab, its comparison again as `:BranchDiff` would open it now, under the same name: from a new merge-base, files changed since get tabs and those no longer changed lose theirs, and you're back on the file you were on. For after an agent edits or commits. Its tabs must have no unsaved changes. In another diff, both sides read again. Either way, buffers changed outside Vim are read again, `'autoread'` or not. |
@@ -164,7 +167,7 @@ Plug 'tpope/vim-fugitive'
 Plug 'roumail/fugitive-extras'
 ```
 
-That gives you the diffs, `:DiffThis`, `:DiffThis!`, `:BranchDiff`, `:DiffRefresh` and
+That gives you the diffs, `:DiffThis`, `:DiffThis!`, `:DiffCommit`, `:BranchDiff`, `:DiffRefresh` and
 `:DiffClose`, with each `:BranchDiff` kept as a comparison, and
 `fugitive_extras#main_ref()` and `fugitive_extras#compares#list()` for other
 plugins.

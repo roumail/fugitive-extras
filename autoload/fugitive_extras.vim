@@ -82,6 +82,36 @@ function! fugitive_extras#diff_this(bang) abort
   endif
 endfunction
 
+" The current file as commit rev (default HEAD) changed it: its parent on the
+" left, rev on the right; with bang, the work tree on the right, so what came
+" since is in it too
+function! fugitive_extras#diff_commit(bang, rev) abort
+  if empty(FugitiveGitDir())
+    call fugitive_extras#error('not in a git repository')
+    return
+  endif
+  let l:rev = empty(a:rev) ? 'HEAD' : a:rev
+  if !s:is_commit(l:rev)
+    call fugitive_extras#error('unknown commit ' . l:rev)
+    return
+  elseif !s:is_commit(l:rev . '^')
+    call fugitive_extras#error(l:rev . ' has no parent')
+    return
+  endif
+  let l:path = FugitivePath(@%, '')
+  if empty(l:path) || l:path =~# '^/'
+    call fugitive_extras#error('not a file in the repository')
+    return
+  elseif s:git(['cat-file', '-e', l:rev . ':' . l:path]) is v:null
+    call fugitive_extras#error(l:path . ' is not in ' . l:rev)
+    return
+  endif
+  if !a:bang
+    execute 'Gedit' fnameescape(l:rev . ':' . l:path)
+  endif
+  execute 'Gvdiffsplit' fnameescape(l:rev . '^')
+endfunction
+
 function! s:is_commit(rev) abort
   return s:git(['rev-parse', '--verify', '--quiet', a:rev . '^{commit}']) isnot v:null
 endfunction

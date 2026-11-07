@@ -255,6 +255,37 @@ function! s:test_diff_refresh_outside_a_comparison() abort
   call assert_equal([['ONE'], ['ONE']], l:sides)
 endfunction
 
+" The first line of each side of this tab's diff, left to right
+function! s:diff_firsts() abort
+  return map(filter(range(1, winnr('$')), 'getwinvar(v:val, "&diff")'),
+        \ 'getbufline(winbufnr(v:val), 1)[0]')
+endfunction
+
+function! s:test_diff_commit() abort
+  for l:first in ['A', 'B']
+    call writefile([l:first, 'two', 'three'], s:repo . '/a.txt')
+    call s:git('commit', '-q', '-am', l:first)
+  endfor
+  " Not committed
+  call writefile(['C', 'two', 'three'], s:repo . '/a.txt')
+  edit a.txt
+  DiffCommit
+  call assert_equal(['A', 'B'], s:diff_firsts())
+  silent! only | edit a.txt
+  DiffCommit!
+  call assert_equal(['A', 'C'], s:diff_firsts())
+  silent! only | edit a.txt
+  DiffCommit HEAD~1
+  call assert_equal(['one', 'A'], s:diff_firsts())
+  silent! only | edit a.txt
+  call assert_match('unknown commit nope', execute('DiffCommit nope'))
+  call assert_match('HEAD\~2 has no parent', execute('DiffCommit HEAD~2'))
+  call writefile(['b'], s:repo . '/b.txt')
+  edit b.txt
+  call assert_match('b.txt is not in HEAD', execute('DiffCommit'))
+  silent! only
+endfunction
+
 function! s:test_branch_commits_args() abort
   call s:git('checkout', '-q', '-b', 'feature')
   call writefile(['notes'], s:repo . '/my notes.txt')
