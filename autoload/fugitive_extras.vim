@@ -12,13 +12,10 @@ function! fugitive_extras#error(msg) abort
   echohl None
 endfunction
 
-" Whether the plugin with the autoload file autoload/{name}.vim is installed:
-" the commands that use one check for it first
 function! fugitive_extras#installed(name) abort
   return !empty(globpath(&runtimepath, 'autoload/' . a:name . '.vim', 1))
 endfunction
 
-" The same, saying what needs the plugin when it isn't installed
 function! fugitive_extras#requires(what, plugin, name) abort
   if fugitive_extras#installed(a:name)
     return 1
@@ -43,7 +40,9 @@ function! fugitive_extras#main_ref() abort
   return ''
 endfunction
 
-" The merge-base of branch (default HEAD) and main, or '' after saying why
+" Merge-bases these commands have diffed against, to tell a diff's base side
+let s:bases = {}
+
 function! fugitive_extras#base(branch) abort
   if empty(FugitiveGitDir())
     call fugitive_extras#error('not in a git repository')
@@ -68,9 +67,6 @@ function! fugitive_extras#base(branch) abort
   return l:base[0]
 endfunction
 
-" Merge-bases these commands have diffed against, to tell a diff's base side
-let s:bases = {}
-
 function! fugitive_extras#is_base(rev) abort
   return has_key(s:bases, matchstr(a:rev, '^\x\{40,}'))
 endfunction
@@ -90,11 +86,8 @@ function! s:is_commit(rev) abort
   return s:git(['rev-parse', '--verify', '--quiet', a:rev . '^{commit}']) isnot v:null
 endfunction
 
-" The branch's commits since the merge-base; with worktree, the checked-out
-" branch's work tree instead, uncommitted changes and all
-function! fugitive_extras#branch_diff(branch, ...) abort
-  let l:worktree = a:0 && a:1
-  if l:worktree && !empty(a:branch)
+function! fugitive_extras#branch_diff(branch, worktree) abort
+  if a:worktree && !empty(a:branch)
     call fugitive_extras#error(':BranchDiff! is the work tree of the checked-out branch: no branch')
     return
   endif
@@ -104,14 +97,12 @@ function! fugitive_extras#branch_diff(branch, ...) abort
   endif
   " The checked-out branch by name, so the comparison stays on it after a
   " checkout and a refresh takes its new commits
-  let l:head = !empty(a:branch) ? a:branch : l:worktree ? ''
-        \ : !empty(FugitiveHead()) ? FugitiveHead() : s:git(['rev-parse', 'HEAD'])[0]
   call fugitive_extras#compares#open(FugitiveGitDir(),
-        \ empty(a:branch) ? FugitiveHead(7) : a:branch, l:base, l:head)
+        \ empty(a:branch) ? FugitiveHead(7) : a:branch, l:base,
+        \ !empty(a:branch) ? a:branch : a:worktree ? ''
+        \ : !empty(FugitiveHead()) ? FugitiveHead() : s:git(['rev-parse', 'HEAD'])[0])
 endfunction
 
-" A comparison again from a new merge-base, as :BranchDiff would open it now;
-" another diff, both sides read again
 function! fugitive_extras#diff_refresh() abort
   " Buffers changed outside Vim, as an agent leaves them, read again without
   " asking: not those with unsaved changes
@@ -135,28 +126,28 @@ function! fugitive_extras#diff_refresh() abort
   diffupdate
 endfunction
 
-function! fugitive_extras#branch_commits(args) abort
+function! fugitive_extras#branch_commits(...) abort
   if !fugitive_extras#requires(':BranchCommits', 'vim-lists', 'roumail_lists')
     return
   endif
-  let l:first = matchstr(a:args, '^\S\+')
+  try
+    " % and # are this buffer's file, as on any command line
+    let l:args = map(copy(a:000), 'expandcmd(v:val)')
+  catch
+    call fugitive_extras#error(v:exception)
+    return
+  endtry
   let l:branch = 'HEAD'
-  let l:rest = a:args
-  if !empty(l:first) && l:first !~# '^-' && s:is_commit(l:first)
-    let l:branch = l:first
-    let l:rest = substitute(a:args, '^\S\+\s*', '', '')
+  " A first word that isn't an option or a path is the branch, so a typo in
+  " one is an unknown branch rather than a path for git log
+  if !empty(l:args) && l:args[0] !~# '^-'
+        \ && (s:is_commit(l:args[0]) || !filereadable(l:args[0]) && !isdirectory(l:args[0]))
+    let l:branch = remove(l:args, 0)
   endif
   let l:base = fugitive_extras#base(l:branch)
   if empty(l:base)
     return
   endif
-  try
-    " % and # are this buffer's file, as on any command line
-    let l:args = split(expandcmd(l:rest))
-  catch
-    call fugitive_extras#error(v:exception)
-    return
-  endtry
   call fugitive_extras#commits#show(l:branch, l:base, l:args)
 endfunction
 
@@ -166,7 +157,7 @@ function! fugitive_extras#complete_branch(lead, cmdline, pos) abort
   if l:refs is v:null
     return []
   endif
-  " Skip origin/HEAD, an alias of the default branch
+  " Skip <remote>/HEAD, an alias of its default branch
   call filter(l:refs, 'v:val !~# "^refs/remotes/[^/]\\+/HEAD$"')
   call map(l:refs, 'substitute(v:val, "^refs/\\%(heads\\|remotes\\)/", "", "")')
   return filter(l:refs, 'stridx(v:val, a:lead) == 0')

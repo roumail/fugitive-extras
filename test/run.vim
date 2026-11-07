@@ -242,6 +242,42 @@ function! s:test_diff_refresh() abort
   silent! tabonly!
 endfunction
 
+function! s:test_diff_refresh_outside_a_comparison() abort
+  edit a.txt
+  DiffThis
+  " Outside Vim, as an agent would: the file changed and staged
+  call writefile(['ONE', 'two', 'three'], s:repo . '/a.txt')
+  call s:git('add', 'a.txt')
+  DiffRefresh
+  " The first line: in silent Ex mode, fugitive's index buffer lacks its last
+  let l:sides = map(filter(tabpagebuflist(), 'getbufvar(v:val, "&diff")'),
+        \ 'getbufline(v:val, 1)')
+  call assert_equal([['ONE'], ['ONE']], l:sides)
+endfunction
+
+function! s:test_branch_commits_args() abort
+  call s:git('checkout', '-q', '-b', 'feature')
+  call writefile(['notes'], s:repo . '/my notes.txt')
+  call s:git('add', 'my notes.txt')
+  call s:git('commit', '-q', '-m', 'add notes')
+  call writefile(['one', 'TWO', 'three'], s:repo . '/a.txt')
+  call s:git('commit', '-q', '-am', 'change a')
+  " A typo in the branch is an unknown branch, not a path for git log
+  call assert_match('unknown branch featur ', execute('BranchCommits featur'))
+  " A path with a space is one path
+  edit my\ notes.txt
+  BranchCommits -- %
+  call assert_equal(2, line('$'))
+  call assert_match('add notes$', getline(2))
+  normal q
+  " The branch, then a path
+  BranchCommits feature -- a.txt
+  call assert_equal(2, line('$'))
+  call assert_match('  change a ', getline(2))
+  normal q
+  silent! only
+endfunction
+
 function! s:test_branch_commits_list() abort
   call s:git('checkout', '-q', '-b', 'feature')
   call writefile(['one', 'TWO', 'three'], s:repo . '/a.txt')

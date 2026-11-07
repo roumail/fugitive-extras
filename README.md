@@ -149,6 +149,7 @@ xmap <leader>cc <Plug>(fugitive-extras-comment)
 | `fugitive_extras#comments#list()` | The review comments as `{path, start, end, body, orphaned?}`: `path` relative to the repo root, `start` and `end` the first and last line, the same for a single line; `orphaned` when its lines weren't found on load. |
 | `fugitive_extras#comments#load([file])` | Replace the `Review` list with the comments in `file`, else the branch's latest save, as `:CommentsLoad`. |
 | `fugitive_extras#comments#check()` | Warn when the unsaved comments are from another branch than now. |
+| `fugitive_extras#complete_branch(lead, cmdline, pos)` | The local and remote branches starting with `lead`, most recently committed first, as `:BranchDiff` completes them; a `-complete=customlist` function. |
 | `fugitive_extras#main_ref()` | Main as a ref (`origin/main`, `main`, …) in the current buffer's repo, or `''`. |
 | `fugitive_extras#compares#list([gitdir])` | The comparisons in the repo at `gitdir` (default: the current buffer's), newest first, as `{name, branch, base, head, files, time, tabs}`: `branch` is what it was
 named for (`name` may add `#2`), `head` is `''` for the work tree, `tabs` the tab numbers still showing it. |
