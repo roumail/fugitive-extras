@@ -43,7 +43,8 @@ function! fugitive_extras#main_ref() abort
   return ''
 endfunction
 
-function! s:base(branch) abort
+" The merge-base of branch (default HEAD) and main, or '' after saying why
+function! fugitive_extras#base(branch) abort
   if empty(FugitiveGitDir())
     call fugitive_extras#error('not in a git repository')
     return ''
@@ -79,7 +80,7 @@ function! fugitive_extras#diff_this(bang) abort
     Gvdiffsplit
     return
   endif
-  let l:base = s:base('')
+  let l:base = fugitive_extras#base('')
   if !empty(l:base)
     execute 'Gvdiffsplit' l:base
   endif
@@ -89,12 +90,49 @@ function! s:is_commit(rev) abort
   return s:git(['rev-parse', '--verify', '--quiet', a:rev . '^{commit}']) isnot v:null
 endfunction
 
-function! fugitive_extras#branch_diff(branch) abort
-  let l:base = s:base(a:branch)
-  if !empty(l:base)
-    call fugitive_extras#compares#open(FugitiveGitDir(),
-          \ empty(a:branch) ? FugitiveHead(7) : a:branch, l:base, a:branch)
+" The branch's commits since the merge-base; with worktree, the checked-out
+" branch's work tree instead, uncommitted changes and all
+function! fugitive_extras#branch_diff(branch, ...) abort
+  let l:worktree = a:0 && a:1
+  if l:worktree && !empty(a:branch)
+    call fugitive_extras#error(':BranchDiff! is the work tree of the checked-out branch: no branch')
+    return
   endif
+  let l:base = fugitive_extras#base(a:branch)
+  if empty(l:base)
+    return
+  endif
+  " The checked-out branch by name, so the comparison stays on it after a
+  " checkout and a refresh takes its new commits
+  let l:head = !empty(a:branch) ? a:branch : l:worktree ? ''
+        \ : !empty(FugitiveHead()) ? FugitiveHead() : s:git(['rev-parse', 'HEAD'])[0]
+  call fugitive_extras#compares#open(FugitiveGitDir(),
+        \ empty(a:branch) ? FugitiveHead(7) : a:branch, l:base, l:head)
+endfunction
+
+" A comparison again from a new merge-base, as :BranchDiff would open it now;
+" another diff, both sides read again
+function! fugitive_extras#diff_refresh() abort
+  " Buffers changed outside Vim, as an agent leaves them, read again without
+  " asking: not those with unsaved changes
+  let l:autoread = &autoread
+  set autoread
+  try
+    silent! checktime
+  finally
+    let &autoread = l:autoread
+  endtry
+  if has_key(t:, 'fugitive_extras_compare')
+    call fugitive_extras#compares#refresh()
+    return
+  endif
+  for l:win in range(1, winnr('$'))
+    let l:buf = winbufnr(l:win)
+    if bufname(l:buf) =~# '^fugitive://' && !getbufvar(l:buf, '&modified')
+      call win_execute(win_getid(l:win), 'silent edit')
+    endif
+  endfor
+  diffupdate
 endfunction
 
 function! fugitive_extras#branch_commits(args) abort
@@ -108,7 +146,7 @@ function! fugitive_extras#branch_commits(args) abort
     let l:branch = l:first
     let l:rest = substitute(a:args, '^\S\+\s*', '', '')
   endif
-  let l:base = s:base(l:branch)
+  let l:base = fugitive_extras#base(l:branch)
   if empty(l:base)
     return
   endif

@@ -8,8 +8,10 @@ saved per branch.
 "Main" is the repo's default branch: `origin/HEAD`, else `origin/main`,
 `origin/master`, `main` or `master`, resolved per repo when a command runs.
 Diffs are against the **merge-base** of `HEAD` and main, so they show only
-what this branch changes, not what landed on main since it forked. They
-include uncommitted changes.
+what this branch changes, not what landed on main since it forked.
+`:BranchDiff` shows what the branch's commits change, as the PR would;
+`:BranchDiff!` and `:DiffThis!` show the work tree, uncommitted changes
+included.
 
 The `:Branch*` commands show the branch like a PR's tabs on GitHub: its
 changed files as diffs, and its commits. They take a
@@ -23,7 +25,9 @@ new remote branches.
 | --- | --- | --- |
 | `:DiffThis` | `<Plug>(fugitive-extras-diff-this)` | `:Gvdiffsplit`: index on the left, working tree on the right. `dp` on a hunk in the working tree stages it, `do` in the index unstages it; `:w` the index buffer to keep it. |
 | `:DiffThis!` | `<Plug>(fugitive-extras-diff-main)` | The current file at the merge-base on the left, working tree on the right: what the branch changes in it. |
-| `:BranchDiff [branch]` | `<Plug>(fugitive-extras-branch-diff)` | One tab per changed file, each already a diff against the merge-base (`:Git difftool -y`), listed in `:Compares`. |
+| `:BranchDiff [branch]` | `<Plug>(fugitive-extras-branch-diff)` | One tab per file the branch's commits change, each already a diff from the merge-base, on the left, to the branch's last commit, on the right (`:Git difftool -y`), listed in `:Compares`. Both sides are read-only. Uncommitted changes, a stash you applied say, are left out. |
+| `:BranchDiff!` | `<Plug>(fugitive-extras-branch-diff-worktree)` | The checked-out branch's work tree instead, committed or not: the merge-base on the left, its files as they are now on the right, to edit and stage in the diff. |
+| `:DiffRefresh` | `<Plug>(fugitive-extras-diff-refresh)` | In a `:BranchDiff` tab, its comparison again as `:BranchDiff` would open it now, under the same name: from a new merge-base, files changed since get tabs and those no longer changed lose theirs, and you're back on the file you were on. For after an agent edits or commits. Its tabs must have no unsaved changes. In another diff, both sides read again. Either way, buffers changed outside Vim are read again, `'autoread'` or not. |
 | `:BranchCommits [branch] [args]` | `<Plug>(fugitive-extras-branch-commits)` | Commits on the branch that main lacks (`git log base..branch`), newest first, in a [vim-lists](https://github.com/roumail/vim-lists) list: hash, author, age, subject. `<CR>` opens a commit in fugitive, in the window above; `/` filters on subject, author and hash; `r` refreshes; `q` closes. Extra args pick which commits, as `git log`'s do: `:BranchCommits --author=mira`, `:BranchCommits -- %` (the commits that change this file). Each commit stays one line; for `--stat` and the like, `:Git log`. |
 | `:DiffClose [name]` | `<Plug>(fugitive-extras-diff-close)` | Close the tabs of a `:BranchDiff` comparison: `name` (`<Tab>` completes names), else the one this tab is in. From one of its tabs, go back to the window `:BranchDiff` was run from. It stays in `:Compares`; a tab with unsaved changes stays open. Outside a comparison, close the `fugitive://` windows in this tab and `:diffoff!`. |
 | `:Compares` | `<Plug>(fugitive-extras-compares)` | The comparisons `:BranchDiff` opened, newest first (see below). |
@@ -37,7 +41,8 @@ Reviewing a PR: check it out (`gh pr checkout`, or `:PRs` in
 
 Each `:BranchDiff` is kept as a comparison, as in GitLens' Search & Compare:
 named for the branch (the current branch's name without one), with the
-merge-base it diffed against. Its tabs carry its name, so closing the files
+merge-base it diffed against and its head: the branch, or the work tree
+for `:BranchDiff!`. Its tabs carry its name, so closing the files
 that raise no questions leaves the ones that do, and other plugins can read
 which ([For other plugins](#for-other-plugins)). A comparison stays listed until you remove it, even
 with all its tabs closed, for the rest of the Vim session. Another
@@ -52,7 +57,7 @@ and age.
 
 | Key | Action |
 | --- | --- |
-| `<CR>` | Close the list and open all its files again, in new tabs, against the same merge-base. `:BranchDiff` again to diff against a new one. |
+| `<CR>` | Close the list and open all its files again, in new tabs, against the same merge-base. `:DiffRefresh` in one of its tabs, or `:BranchDiff` again, to diff against a new one. |
 | `dd` | Remove it from the list. Its tabs stay open. To close them too, run `:DiffClose <name>` before removing it. |
 | `/` | Filter the list as you type, on name, branch and head. |
 | `r` | Refresh. The cursor stays on its comparison. |
@@ -131,6 +136,7 @@ mappings yourself, for example:
 
 ```vim
 nmap <leader>cd <Plug>(fugitive-extras-diff-main)
+nmap <leader>cr <Plug>(fugitive-extras-diff-refresh)
 nmap <leader>cl <Plug>(fugitive-extras-branch-commits)
 nmap <leader>cc <Plug>(fugitive-extras-comment)
 xmap <leader>cc <Plug>(fugitive-extras-comment)
@@ -157,7 +163,7 @@ Plug 'tpope/vim-fugitive'
 Plug 'roumail/fugitive-extras'
 ```
 
-That gives you the diffs, `:DiffThis`, `:DiffThis!`, `:BranchDiff` and
+That gives you the diffs, `:DiffThis`, `:DiffThis!`, `:BranchDiff`, `:DiffRefresh` and
 `:DiffClose`, with each `:BranchDiff` kept as a comparison, and
 `fugitive_extras#main_ref()` and `fugitive_extras#compares#list()` for other
 plugins.

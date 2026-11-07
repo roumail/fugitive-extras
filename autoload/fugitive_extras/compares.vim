@@ -133,6 +133,55 @@ function! fugitive_extras#compares#close(name) abort
   endif
 endfunction
 
+" This tab's comparison closed and opened again under its name, from a new
+" merge-base: files changed since get tabs, those no longer changed lose
+" theirs. Back on this tab's file, where it is still changed
+function! fugitive_extras#compares#refresh() abort
+  let l:compare = fugitive_extras#compares#current()
+  if empty(l:compare)
+    call fugitive_extras#error('not in a comparison')
+    return
+  endif
+  let l:tabs = s:tabs(l:compare)
+  for l:tab in l:tabs
+    if !empty(filter(tabpagebuflist(l:tab), 'getbufvar(v:val, "&modified")'))
+      call fugitive_extras#error('tab ' . l:tab . ' of ' . l:compare.name
+            \ . ' has unsaved changes: write or discard them first')
+      return
+    endif
+  endfor
+  let l:file = FugitiveReal(@%)
+  let l:base = fugitive_extras#base(l:compare.head)
+  if empty(l:base)
+    return
+  endif
+  let l:all = len(l:tabs) == tabpagenr('$')
+  call fugitive_extras#compares#close(l:compare.name)
+  " Vim keeps one tab: close made it an empty one, to go once the files are open
+  let l:blank = l:all ? win_getid() : 0
+  call fugitive_extras#compares#open(l:compare.dir, l:compare.branch, l:base,
+        \ l:compare.head, l:compare.name)
+  let l:new = s:tabs(l:compare)
+  if l:blank && !empty(l:new) && win_id2tabwin(l:blank)[0]
+    execute win_id2tabwin(l:blank)[0] . 'tabclose'
+    let l:new = s:tabs(l:compare)
+  endif
+  " The diff's branch side: the window with the file not at the merge-base
+  for l:tab in l:new
+    let l:wins = filter(gettabinfo(l:tab)[0].windows,
+          \ {_, w -> FugitiveReal(bufname(winbufnr(w))) ==# l:file
+          \   && !(bufname(winbufnr(w)) =~# '^fugitive://'
+          \     && fugitive_extras#is_base(FugitiveParse(bufname(winbufnr(w)))[0]))})
+    if !empty(l:wins)
+      call win_gotoid(l:wins[-1])
+      return
+    endif
+  endfor
+  if !empty(l:new)
+    execute l:new[0] . 'tabnext'
+  endif
+endfunction
+
 function! fugitive_extras#compares#complete(lead, cmdline, pos) abort
   return filter(map(fugitive_extras#compares#list(), 'v:val.name'),
         \ 'stridx(v:val, a:lead) == 0')

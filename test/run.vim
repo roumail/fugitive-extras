@@ -36,6 +36,10 @@ function! s:git(...) abort
 endfunction
 
 function! s:reset() abort
+  silent! tabonly!
+  for l:compare in fugitive_extras#compares#list()
+    call fugitive_extras#compares#remove(l:compare.dir, l:compare.name)
+  endfor
   silent! %bwipeout!
   CommentsClear
   call delete(s:tmp, 'rf')
@@ -178,6 +182,63 @@ function! s:test_compares_list() abort
   call assert_equal([], fugitive_extras#compares#list())
   normal q
   call assert_false(bufexists('fugitive-extras://compares/repo'))
+  silent! tabonly!
+endfunction
+
+" The names of the files a comparison's tabs show, sorted
+function! s:compare_files(name) abort
+  let l:compare = filter(fugitive_extras#compares#list(), 'v:val.name ==# a:name')[0]
+  return sort(map(copy(l:compare.tabs),
+        \ {_, t -> fnamemodify(FugitiveReal(bufname(tabpagebuflist(t)[-1])), ':t')}))
+endfunction
+
+function! s:test_branch_diff_committed_or_work_tree() abort
+  call s:git('checkout', '-q', '-b', 'feature')
+  call writefile(['one', 'TWO', 'three'], s:repo . '/a.txt')
+  call s:git('commit', '-q', '-am', 'change')
+  " Not committed: a stash applied, say
+  call writefile(['b'], s:repo . '/b.txt')
+  call s:git('add', 'b.txt')
+  edit a.txt
+  BranchDiff
+  call assert_equal(['a.txt'], s:compare_files('feature'))
+  call assert_equal('feature', fugitive_extras#compares#list()[0].head)
+  " The merge-base on the left, the branch's commit on the right
+  let l:sides = map(tabpagebuflist(fugitive_extras#compares#list()[0].tabs[0]),
+        \ 'FugitiveParse(bufname(v:val))[0]')
+  call assert_true(fugitive_extras#is_base(l:sides[0]), 'left: ' . l:sides[0])
+  call assert_false(fugitive_extras#is_base(l:sides[-1]), 'right: ' . l:sides[-1])
+  tabfirst
+  BranchDiff!
+  call assert_equal(['a.txt', 'b.txt'], s:compare_files('feature#2'))
+  call assert_equal('', fugitive_extras#compares#list()[0].head)
+  call assert_match('no branch', execute('BranchDiff! main'))
+  silent! tabonly!
+endfunction
+
+function! s:test_diff_refresh() abort
+  call s:git('checkout', '-q', '-b', 'feature')
+  call writefile(['one', 'TWO', 'three'], s:repo . '/a.txt')
+  call s:git('commit', '-q', '-am', 'change')
+  edit a.txt
+  BranchDiff!
+  call assert_equal(['a.txt'], s:compare_files('feature'))
+  " An agent's edits, outside Vim: a.txt again, and a new file
+  call writefile(['one', 'TWO', 'three', 'four'], s:repo . '/a.txt')
+  call writefile(['b'], s:repo . '/b.txt')
+  call s:git('add', 'b.txt')
+  let l:tabs = tabpagenr('$')
+  DiffRefresh
+  call assert_equal(['a.txt', 'b.txt'], s:compare_files('feature'))
+  call assert_equal(1, len(fugitive_extras#compares#list()), 'the same comparison')
+  call assert_equal(l:tabs + 1, tabpagenr('$'))
+  " Back on a.txt, its work tree side, read again
+  call assert_equal(s:repo . '/a.txt', expand('%:p'))
+  call assert_equal(['one', 'TWO', 'three', 'four'], getline(1, '$'))
+  " Unsaved changes stop it
+  call setline(1, 'edited')
+  call assert_match('unsaved changes', execute('DiffRefresh'))
+  call assert_equal(['a.txt', 'b.txt'], s:compare_files('feature'))
   silent! tabonly!
 endfunction
 

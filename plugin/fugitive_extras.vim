@@ -9,9 +9,13 @@ let g:loaded_fugitive_extras = 1
 command! -bang DiffThis call fugitive_extras#diff_this(<bang>0)
 " The commands below take an optional branch (default HEAD), e.g.
 " origin/feature, to review it without checking it out.
-" One tab per changed file, each a diff against the merge-base with main
-command! -nargs=? -complete=customlist,fugitive_extras#complete_branch
-      \ BranchDiff call fugitive_extras#branch_diff(<q-args>)
+" One tab per file the branch's commits change, each a diff against the
+" merge-base with main; with !, the work tree's changes, uncommitted too
+command! -bang -nargs=? -complete=customlist,fugitive_extras#complete_branch
+      \ BranchDiff call fugitive_extras#branch_diff(<q-args>, <bang>0)
+" This tab's comparison again from a new merge-base, back on this file;
+" another diff, both sides read again
+command! DiffRefresh call fugitive_extras#diff_refresh()
 " Commits on the branch that main doesn't have, a vim-lists list; further
 " args pick which (git log's --author=..., -- paths)
 command! -nargs=* -complete=customlist,fugitive_extras#complete_commits
@@ -26,6 +30,8 @@ command! Compares call fugitive_extras#compares#show()
 nnoremap <Plug>(fugitive-extras-diff-this) <Cmd>DiffThis<CR>
 nnoremap <Plug>(fugitive-extras-diff-main) <Cmd>DiffThis!<CR>
 nnoremap <Plug>(fugitive-extras-branch-diff) <Cmd>BranchDiff<CR>
+nnoremap <Plug>(fugitive-extras-branch-diff-worktree) <Cmd>BranchDiff!<CR>
+nnoremap <Plug>(fugitive-extras-diff-refresh) <Cmd>DiffRefresh<CR>
 nnoremap <Plug>(fugitive-extras-branch-commits) <Cmd>BranchCommits<CR>
 nnoremap <Plug>(fugitive-extras-diff-close) <Cmd>DiffClose<CR>
 nnoremap <Plug>(fugitive-extras-compares) <Cmd>Compares<CR>
